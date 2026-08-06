@@ -36,6 +36,15 @@ venv.bak/
 node_modules/
 jspm_packages/
 
+# Test / lint caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Frontend build output
+frappe_cpanel_manager/public/dist/
+
 # IDEs and editors
 .vscode/
 .vs/
