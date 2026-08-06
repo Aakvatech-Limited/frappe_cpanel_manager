@@ -1,0 +1,22 @@
+{
+ "app": "frappe_cpanel_manager",
+ "bg_color": "gray",
+ "creation": "2026-08-06 09:46:35.168735",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon": "server",
+ "icon_type": "Link",
+ "idx": 0,
+ "label": "cPanel Manager",
+ "link_to": "cPanel Manager",
+ "link_type": "Workspace Sidebar",
+ "modified": "2026-08-06 09:46:35.168735",
+ "modified_by": "Administrator",
+ "name": "cPanel Manager",
+ "owner": "Administrator",
+ "parent_icon": "Frappe Cpanel Manager",
+ "restrict_removal": 0,
+ "roles": [],
+ "standard": 1
+}

@@ -11,15 +11,14 @@ app_license = "mit"
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "frappe_cpanel_manager",
-# 		"logo": "/assets/frappe_cpanel_manager/logo.png",
-# 		"title": "Frappe Cpanel Manager",
-# 		"route": "/frappe_cpanel_manager",
-# 		"has_permission": "frappe_cpanel_manager.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "frappe_cpanel_manager",
+		"logo": "/assets/frappe_cpanel_manager/images/cpanel-manager-logo.svg",
+		"title": "Frappe Cpanel Manager",
+		"route": "/app/cpanel-manager",
+	}
+]
 
 # Includes in <head>
 # ------------------

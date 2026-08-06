@@ -1,0 +1,158 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "hash",
+ "creation": "2026-08-06 09:25:30.450583",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "server",
+  "operation",
+  "api_layer",
+  "status",
+  "column_break_ref",
+  "reference_doctype",
+  "reference_name",
+  "http_status",
+  "section_break_timing",
+  "request_time",
+  "column_break_timing",
+  "completion_time",
+  "section_break_payload",
+  "sanitized_request",
+  "sanitized_response",
+  "error_message"
+ ],
+ "fields": [
+  {
+   "fieldname": "server",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Server",
+   "options": "cPanel Server",
+   "read_only": 1
+  },
+  {
+   "fieldname": "operation",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Operation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "api_layer",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "API Layer",
+   "options": "WHM API 1\ncPanel UAPI",
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Success\nFailed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ref",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference DocType",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Reference Name",
+   "options": "reference_doctype",
+   "read_only": 1
+  },
+  {
+   "fieldname": "http_status",
+   "fieldtype": "Int",
+   "label": "HTTP Status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_timing",
+   "fieldtype": "Section Break",
+   "label": "Timing"
+  },
+  {
+   "fieldname": "request_time",
+   "fieldtype": "Datetime",
+   "label": "Request Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_timing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "completion_time",
+   "fieldtype": "Datetime",
+   "label": "Completion Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_payload",
+   "fieldtype": "Section Break",
+   "label": "Sanitized Payload"
+  },
+  {
+   "fieldname": "sanitized_request",
+   "fieldtype": "Code",
+   "label": "Sanitized Request",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sanitized_response",
+   "fieldtype": "Code",
+   "label": "Sanitized Response",
+   "read_only": 1
+  },
+  {
+   "fieldname": "error_message",
+   "fieldtype": "Small Text",
+   "label": "Error Message",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "in_create": 1,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-06 09:25:30.450583",
+ "modified_by": "Administrator",
+ "module": "Integration Logs",
+ "name": "cPanel Integration Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

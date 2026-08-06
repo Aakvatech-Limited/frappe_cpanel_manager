@@ -1,1 +1,5 @@
-Frappe Cpanel Manager
+cPanel Configuration
+Domain Management
+DNS Management
+Email Management
+Integration Logs

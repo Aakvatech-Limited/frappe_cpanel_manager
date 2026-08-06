@@ -1,0 +1,53 @@
+{
+ "app": "frappe_cpanel_manager",
+ "creation": "2026-08-06 09:46:35.072890",
+ "docstatus": 0,
+ "doctype": "Workspace Sidebar",
+ "header_icon": "server",
+ "idx": 0,
+ "items": [
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "home",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Home",
+   "link_to": "cPanel Manager",
+   "link_type": "Workspace",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "server",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "cPanel Server",
+   "link_to": "cPanel Server",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "history",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Integration Log",
+   "link_to": "cPanel Integration Log",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-08-06 09:46:35.072890",
+ "modified_by": "Administrator",
+ "module": "cPanel Configuration",
+ "name": "cPanel Manager",
+ "owner": "Administrator",
+ "standard": 1,
+ "title": "cPanel Manager"
+}

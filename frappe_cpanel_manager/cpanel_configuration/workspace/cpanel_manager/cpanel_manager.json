@@ -1,0 +1,69 @@
+{
+ "app": "frappe_cpanel_manager",
+ "charts": [],
+ "content": "[\n {\n  \"data\": {\n   \"col\": 12,\n   \"text\": \"<span class=\\\"h4\\\"><b>cPanel Hosting Management</b></span>\"\n  },\n  \"id\": \"cpm-header\",\n  \"type\": \"header\"\n },\n {\n  \"data\": {\n   \"card_name\": \"cPanel Configuration\",\n   \"col\": 4\n  },\n  \"id\": \"cpm-card-config\",\n  \"type\": \"card\"\n },\n {\n  \"data\": {\n   \"card_name\": \"Integration Logs\",\n   \"col\": 4\n  },\n  \"id\": \"cpm-card-logs\",\n  \"type\": \"card\"\n }\n]",
+ "creation": "2026-08-06 09:46:34.736024",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "hide_custom": 0,
+ "icon": "server",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "cPanel Manager",
+ "link_type": "DocType",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "cPanel Configuration",
+   "link_count": 0,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "cPanel Server",
+   "link_count": 0,
+   "link_to": "cPanel Server",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Integration Logs",
+   "link_count": 0,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "cPanel Integration Log",
+   "link_count": 0,
+   "link_to": "cPanel Integration Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-08-06 09:46:34.736024",
+ "modified_by": "Administrator",
+ "module": "cPanel Configuration",
+ "name": "cPanel Manager",
+ "number_cards": [],
+ "owner": "Administrator",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 0.0,
+ "shortcuts": [],
+ "title": "cPanel Manager",
+ "type": "Workspace"
+}
