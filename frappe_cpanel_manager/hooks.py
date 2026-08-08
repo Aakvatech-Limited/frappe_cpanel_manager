@@ -10,6 +10,30 @@ app_license = "mit"
 
 # required_apps = []
 
+# Fixtures
+# ------------------
+# Custom roles the app's permission matrix depends on; exported here so
+# `bench migrate` creates/updates them on any site the app is installed on.
+
+fixtures = [
+	{
+		"doctype": "Role",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"cPanel Manager Administrator",
+					"cPanel Manager Operator",
+					"cPanel Manager Email Administrator",
+					"cPanel Manager Support",
+					"cPanel Manager Auditor",
+				],
+			]
+		],
+	}
+]
+
 # Each item in the list will be shown as an app in the apps page
 add_to_apps_screen = [
 	{

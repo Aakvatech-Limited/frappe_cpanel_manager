@@ -75,7 +75,8 @@
   {
    "fieldname": "initial_password",
    "fieldtype": "Password",
-   "label": "Initial Password"
+   "label": "Initial Password",
+   "permlevel": 1
   },
   {
    "fieldname": "section_break_status",
@@ -124,6 +125,57 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "cPanel Manager Administrator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "cPanel Manager Administrator",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "cPanel Manager Email Administrator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "cPanel Manager Email Administrator",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "cPanel Manager Support"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "cPanel Manager Auditor"
   }
  ],
  "row_format": "Dynamic",

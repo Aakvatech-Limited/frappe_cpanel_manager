@@ -96,7 +96,8 @@
    "fieldname": "initial_cpanel_password",
    "fieldtype": "Password",
    "label": "Initial cPanel Password",
-   "mandatory_depends_on": "eval:doc.provisioning_type==\"New cPanel Account\""
+   "mandatory_depends_on": "eval:doc.provisioning_type==\"New cPanel Account\"",
+   "permlevel": 1
   },
   {
    "fetch_from": "server.default_hosting_package",
@@ -174,6 +175,61 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "cPanel Manager Administrator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "cPanel Manager Administrator",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "cPanel Manager Operator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "cPanel Manager Operator",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "cPanel Manager Support"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "cPanel Manager Auditor"
+  },
+  {
+   "read": 1,
+   "role": "cPanel Manager Email Administrator"
   }
  ],
  "row_format": "Dynamic",

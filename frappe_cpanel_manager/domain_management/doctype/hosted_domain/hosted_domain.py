@@ -14,7 +14,7 @@ from frappe_cpanel_manager.domain_management.utils import (
 	domain_exists_on_server,
 	normalize_domain,
 )
-from frappe_cpanel_manager.integrations.cpanel.client import CPanelClient
+from frappe_cpanel_manager.integrations.cpanel.client import CPanelClient, sanitize_params
 from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAPIError, CPanelDuplicateResourceError
 
 
@@ -74,7 +74,7 @@ class HostedDomain(Document):
 
 		self.db_set("status", "Active", update_modified=False)
 		self.db_set("last_provisioned_on", now_datetime(), update_modified=False)
-		self.db_set("last_api_response", frappe.as_json(result, indent=2), update_modified=False)
+		self.db_set("last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False)
 		self.db_set("error_message", "", update_modified=False)
 		if self.get_password("initial_cpanel_password", raise_exception=False):
 			remove_encrypted_password(self.doctype, self.name, "initial_cpanel_password")

@@ -8,7 +8,7 @@ from frappe.utils import now_datetime
 from frappe.utils.password import remove_encrypted_password
 
 from frappe_cpanel_manager.email_management.utils import normalize_mailbox
-from frappe_cpanel_manager.integrations.cpanel.client import CPanelClient
+from frappe_cpanel_manager.integrations.cpanel.client import CPanelClient, sanitize_params
 from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAPIError
 
 
@@ -80,7 +80,7 @@ class DomainEmailAccount(Document):
 
 		self.db_set("status", "Active", update_modified=False)
 		self.db_set("last_action_on", now_datetime(), update_modified=False)
-		self.db_set("last_api_response", frappe.as_json(result, indent=2), update_modified=False)
+		self.db_set("last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False)
 		self.db_set("error_message", "", update_modified=False)
 		if self.get_password("initial_password", raise_exception=False):
 			remove_encrypted_password(self.doctype, self.name, "initial_password")
@@ -102,7 +102,7 @@ class DomainEmailAccount(Document):
 			frappe.throw(str(e), exc=type(e), title=_("Password Change Failed"))
 
 		self.db_set("last_action_on", now_datetime(), update_modified=False)
-		self.db_set("last_api_response", frappe.as_json(result, indent=2), update_modified=False)
+		self.db_set("last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False)
 		self.db_set("error_message", "", update_modified=False)
 
 	def edit_quota(self, quota_mb):
@@ -120,7 +120,7 @@ class DomainEmailAccount(Document):
 
 		self.db_set("quota_mb", quota_mb or 0, update_modified=False)
 		self.db_set("last_action_on", now_datetime(), update_modified=False)
-		self.db_set("last_api_response", frappe.as_json(result, indent=2), update_modified=False)
+		self.db_set("last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False)
 		self.db_set("error_message", "", update_modified=False)
 
 	def suspend(self):
@@ -143,5 +143,5 @@ class DomainEmailAccount(Document):
 
 		self.db_set("status", new_status, update_modified=False)
 		self.db_set("last_action_on", now_datetime(), update_modified=False)
-		self.db_set("last_api_response", frappe.as_json(result, indent=2), update_modified=False)
+		self.db_set("last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False)
 		self.db_set("error_message", "", update_modified=False)

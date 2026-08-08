@@ -16,10 +16,21 @@ from frappe_cpanel_manager.integrations.cpanel.exceptions import (
 SANITIZE_KEYS = {"password", "pass", "token", "whm_api_token", "new_password", "cpanel_token"}
 
 
-def sanitize_params(params):
-	if not params:
-		return params
-	return {key: ("***REDACTED***" if key.lower() in SANITIZE_KEYS else value) for key, value in params.items()}
+def sanitize_params(value):
+	"""Recursively redact known-secret keys from a dict/list-shaped payload.
+
+	Used for both outgoing request params and parsed API responses -- a
+	response can echo back a submitted field (or a provider quirk could leak
+	one unexpectedly), so redaction can't be a request-side-only concern.
+	"""
+	if isinstance(value, dict):
+		return {
+			key: ("***REDACTED***" if isinstance(key, str) and key.lower() in SANITIZE_KEYS else sanitize_params(val))
+			for key, val in value.items()
+		}
+	if isinstance(value, list):
+		return [sanitize_params(item) for item in value]
+	return value
 
 
 class CPanelClient:
@@ -87,7 +98,7 @@ class CPanelClient:
 		sanitized_response = None
 		if response is not None:
 			try:
-				sanitized_response = frappe.as_json(response.json(), indent=2)
+				sanitized_response = frappe.as_json(sanitize_params(response.json()), indent=2)
 			except ValueError:
 				sanitized_response = response.text
 

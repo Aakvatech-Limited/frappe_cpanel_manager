@@ -1,0 +1,42 @@
+[
+ {
+  "doctype": "Role",
+  "name": "cPanel Manager Administrator",
+  "role_name": "cPanel Manager Administrator",
+  "desk_access": 1,
+  "disabled": 0,
+  "is_custom": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "cPanel Manager Operator",
+  "role_name": "cPanel Manager Operator",
+  "desk_access": 1,
+  "disabled": 0,
+  "is_custom": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "cPanel Manager Email Administrator",
+  "role_name": "cPanel Manager Email Administrator",
+  "desk_access": 1,
+  "disabled": 0,
+  "is_custom": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "cPanel Manager Support",
+  "role_name": "cPanel Manager Support",
+  "desk_access": 1,
+  "disabled": 0,
+  "is_custom": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "cPanel Manager Auditor",
+  "role_name": "cPanel Manager Auditor",
+  "desk_access": 1,
+  "disabled": 0,
+  "is_custom": 0
+ }
+]
