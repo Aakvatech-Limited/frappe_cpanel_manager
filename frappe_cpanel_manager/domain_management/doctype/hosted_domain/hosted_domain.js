@@ -47,5 +47,11 @@ frappe.ui.form.on("Hosted Domain", {
 			},
 			__("DNS")
 		);
+
+		if (frm.doc.provisioning_type === "New cPanel Account") {
+			frm.add_custom_button(__("Email Accounts"), () => {
+				frappe.set_route("list", "Domain Email Account", { hosted_domain: frm.doc.name });
+			});
+		}
 	},
 });
