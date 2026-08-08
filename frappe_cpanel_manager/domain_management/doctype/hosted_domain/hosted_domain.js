@@ -7,6 +7,10 @@ frappe.ui.form.on("Hosted Domain", {
 			return;
 		}
 
+		if (["Queued", "Provisioning"].includes(frm.doc.status)) {
+			return;
+		}
+
 		if (frm.doc.status !== "Active") {
 			frm.add_custom_button(__("Provision"), () => {
 				frappe.call({
@@ -14,6 +18,14 @@ frappe.ui.form.on("Hosted Domain", {
 					args: { name: frm.doc.name },
 					freeze: true,
 					freeze_message: __("Provisioning domain..."),
+					callback: () => frm.reload_doc(),
+				});
+			});
+
+			frm.add_custom_button(__("Queue Provisioning"), () => {
+				frappe.call({
+					method: "frappe_cpanel_manager.api.domain.enqueue_provision",
+					args: { name: frm.doc.name },
 					callback: () => frm.reload_doc(),
 				});
 			});

@@ -3,3 +3,4 @@ Domain Management
 DNS Management
 Email Management
 Integration Logs
+Operations

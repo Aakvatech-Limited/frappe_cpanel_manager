@@ -10,6 +10,13 @@ def provision_domain(name):
 
 
 @frappe.whitelist()
+def enqueue_provision(name):
+	frappe.has_permission("Hosted Domain", "write", throw=True)
+	doc = frappe.get_doc("Hosted Domain", name)
+	return doc.enqueue_provision()
+
+
+@frappe.whitelist()
 def sync_dns_from_server(name):
 	frappe.has_permission("Hosted Domain", "write", throw=True)
 	doc = frappe.get_doc("Hosted Domain", name)

@@ -51,6 +51,18 @@ class HostedDomain(Document):
 					)
 				)
 
+	def enqueue_provision(self):
+		"""Queue a provisioning run so long-running or transient failures can be retried safely."""
+		self.db_set("status", "Queued", update_modified=False)
+		frappe.enqueue(
+			"frappe_cpanel_manager.integrations.cpanel.operations.process_hosted_domain_provision",
+			queue="long",
+			docname=self.name,
+			job_name=f"Hosted Domain:{self.name}:provision",
+			enqueue_after_commit=True,
+		)
+		return {"status": self.status}
+
 	def provision(self):
 		client = CPanelClient(self.server)
 

@@ -172,23 +172,9 @@ add_to_apps_screen = [
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"frappe_cpanel_manager.tasks.all"
-# 	],
-# 	"daily": [
-# 		"frappe_cpanel_manager.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"frappe_cpanel_manager.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"frappe_cpanel_manager.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"frappe_cpanel_manager.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"hourly": ["frappe_cpanel_manager.operations.scheduled.sync_pending_hosted_domains"],
+}
 
 # Testing
 # -------
