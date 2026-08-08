@@ -17,7 +17,7 @@ def test_connection(server):
 	except CPanelAPIError as e:
 		doc.db_set("last_connection_status", "Failed", update_modified=False)
 		doc.db_set("last_connection_test", now_datetime(), update_modified=False)
-		frappe.throw(str(e), title=_("Connection Failed"))
+		frappe.throw(str(e), exc=type(e), title=_("Connection Failed"))
 
 	doc.db_set("last_connection_status", "Success", update_modified=False)
 	doc.db_set("last_connection_test", now_datetime(), update_modified=False)
