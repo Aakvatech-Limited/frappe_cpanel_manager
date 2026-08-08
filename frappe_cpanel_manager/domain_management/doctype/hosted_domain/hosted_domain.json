@@ -21,6 +21,8 @@
   "hosting_package",
   "section_break_network",
   "ip_address",
+  "section_break_dns",
+  "dns_records",
   "section_break_status",
   "last_provisioned_on",
   "column_break_status",
@@ -112,6 +114,17 @@
    "fieldname": "ip_address",
    "fieldtype": "Data",
    "label": "IP Address"
+  },
+  {
+   "fieldname": "section_break_dns",
+   "fieldtype": "Section Break",
+   "label": "DNS Records"
+  },
+  {
+   "fieldname": "dns_records",
+   "fieldtype": "Table",
+   "label": "DNS Records",
+   "options": "Domain DNS Record"
   },
   {
    "fieldname": "section_break_status",

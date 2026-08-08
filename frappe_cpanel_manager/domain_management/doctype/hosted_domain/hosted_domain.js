@@ -3,17 +3,49 @@
 
 frappe.ui.form.on("Hosted Domain", {
 	refresh(frm) {
-		if (frm.is_new() || frm.doc.status === "Active") {
+		if (frm.is_new()) {
 			return;
 		}
-		frm.add_custom_button(__("Provision"), () => {
-			frappe.call({
-				method: "frappe_cpanel_manager.api.domain.provision_domain",
-				args: { name: frm.doc.name },
-				freeze: true,
-				freeze_message: __("Provisioning domain..."),
-				callback: () => frm.reload_doc(),
+
+		if (frm.doc.status !== "Active") {
+			frm.add_custom_button(__("Provision"), () => {
+				frappe.call({
+					method: "frappe_cpanel_manager.api.domain.provision_domain",
+					args: { name: frm.doc.name },
+					freeze: true,
+					freeze_message: __("Provisioning domain..."),
+					callback: () => frm.reload_doc(),
+				});
 			});
-		});
+			return;
+		}
+
+		frm.add_custom_button(
+			__("Sync DNS from Server"),
+			() => {
+				frappe.call({
+					method: "frappe_cpanel_manager.api.domain.sync_dns_from_server",
+					args: { name: frm.doc.name },
+					freeze: true,
+					freeze_message: __("Fetching DNS records..."),
+					callback: () => frm.reload_doc(),
+				});
+			},
+			__("DNS")
+		);
+
+		frm.add_custom_button(
+			__("Apply DNS Changes"),
+			() => {
+				frappe.call({
+					method: "frappe_cpanel_manager.api.domain.apply_dns_changes",
+					args: { name: frm.doc.name },
+					freeze: true,
+					freeze_message: __("Applying DNS changes..."),
+					callback: () => frm.reload_doc(),
+				});
+			},
+			__("DNS")
+		);
 	},
 });
