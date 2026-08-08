@@ -83,7 +83,7 @@ class CPanelClient:
 		except requests.exceptions.ConnectionError as e:
 			raise CPanelNetworkError(f"Unable to reach {self.hostname}.") from e
 
-	def _log(self, api_layer, operation, params, response=None, error=None):
+	def _log(self, api_layer, operation, params, response=None, error=None, reference_doctype=None, reference_name=None):
 		sanitized_response = None
 		if response is not None:
 			try:
@@ -105,12 +105,14 @@ class CPanelClient:
 					"sanitized_request": frappe.as_json(sanitize_params(params), indent=2),
 					"sanitized_response": sanitized_response,
 					"error_message": str(error) if error else None,
+					"reference_doctype": reference_doctype,
+					"reference_name": reference_name,
 				}
 			).insert(ignore_permissions=True)
 		except Exception:
 			frappe.log_error(title="Failed to write cPanel Integration Log", message=frappe.get_traceback())
 
-	def call_whm(self, function_name, params=None):
+	def call_whm(self, function_name, params=None, reference_doctype=None, reference_name=None):
 		if not self.whm_token:
 			raise CPanelAPIError("WHM API token is not configured.")
 
@@ -124,13 +126,38 @@ class CPanelClient:
 			response = self._request(url, headers, query, "GET")
 			result = self._check_response(response)
 		except CPanelAPIError as e:
-			self._log("WHM API 1", function_name, query, response=response, error=e)
+			self._log(
+				"WHM API 1",
+				function_name,
+				query,
+				response=response,
+				error=e,
+				reference_doctype=reference_doctype,
+				reference_name=reference_name,
+			)
 			raise
 
-		self._log("WHM API 1", function_name, query, response=response)
+		self._log(
+			"WHM API 1",
+			function_name,
+			query,
+			response=response,
+			reference_doctype=reference_doctype,
+			reference_name=reference_name,
+		)
 		return result
 
-	def call_uapi(self, cpanel_username, cpanel_token, module, function_name, params=None, method="GET"):
+	def call_uapi(
+		self,
+		cpanel_username,
+		cpanel_token,
+		module,
+		function_name,
+		params=None,
+		method="GET",
+		reference_doctype=None,
+		reference_name=None,
+	):
 		url = f"https://{self.hostname}:{self.server.cpanel_port or 2083}/execute/{module}/{function_name}"
 		headers = {"Authorization": f"cpanel {cpanel_username}:{cpanel_token}"}
 
@@ -139,13 +166,30 @@ class CPanelClient:
 			response = self._request(url, headers, params, method)
 			result = self._check_response(response)
 		except CPanelAPIError as e:
-			self._log("cPanel UAPI", f"{module}/{function_name}", params, response=response, error=e)
+			self._log(
+				"cPanel UAPI",
+				f"{module}/{function_name}",
+				params,
+				response=response,
+				error=e,
+				reference_doctype=reference_doctype,
+				reference_name=reference_name,
+			)
 			raise
 
-		self._log("cPanel UAPI", f"{module}/{function_name}", params, response=response)
+		self._log(
+			"cPanel UAPI",
+			f"{module}/{function_name}",
+			params,
+			response=response,
+			reference_doctype=reference_doctype,
+			reference_name=reference_name,
+		)
 		return result
 
-	def call_uapi_via_whm(self, cpanel_username, module, function_name, params=None):
+	def call_uapi_via_whm(
+		self, cpanel_username, module, function_name, params=None, reference_doctype=None, reference_name=None
+	):
 		"""Execute a UAPI function through the WHM 'cpanel' proxy, using only the
 		WHM token (no per-account cPanel token needed).
 
@@ -161,4 +205,6 @@ class CPanelClient:
 			"cpanel_jsonapi_func": function_name,
 		}
 		whm_params.update(params or {})
-		return self.call_whm("cpanel", params=whm_params)
+		return self.call_whm(
+			"cpanel", params=whm_params, reference_doctype=reference_doctype, reference_name=reference_name
+		)
