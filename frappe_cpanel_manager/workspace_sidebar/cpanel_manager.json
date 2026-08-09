@@ -41,9 +41,33 @@
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "mail-search",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Email Accounts",
+   "link_to": "Domain Email Account",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "between-horizontal-start",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Domain Accounts",
+   "link_to": "Hosted Domain",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-08-06 09:46:35.072890",
+ "modified": "2026-08-09 08:28:49.121051",
  "modified_by": "Administrator",
  "module": "cPanel Configuration",
  "name": "cPanel Manager",
