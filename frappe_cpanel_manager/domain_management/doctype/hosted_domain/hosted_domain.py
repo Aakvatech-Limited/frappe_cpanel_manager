@@ -129,18 +129,16 @@ class HostedDomain(Document):
 	def _parse_zone_records(self, result):
 		"""Map WHM API 1 `dumpzone` output onto Domain DNS Record rows.
 
-		NOTE: `dumpzone`'s exact response shape has not been verified against a
-		live server (see the Phase 0 sandbox-spike gap in the project plan).
-		Based on third-party references it is `{"result": [{"record": [...]}]}`,
-		with a `{"dnszone": [...]}` fallback for older/alternate shapes. Re-check
-		both against a real WHM server before relying on this in production.
+		Confirmed against a live WHM server: the payload is
+		`{"data": {"zone": [{"record": [...]}]}, "metadata": {...}}`. A
+		`{"dnszone": [...]}` fallback is kept for older/alternate shapes.
 		Only the record types this app manages (frappe_cpanel_manager.domain_management.utils.DNS_RECORD_TYPES)
 		are kept; SOA/apex control entries are skipped so a sync never touches them.
 		"""
 		entries = None
-		result_list = result.get("result")
-		if isinstance(result_list, list) and result_list:
-			entries = result_list[0].get("record")
+		zone_list = (result.get("data") or {}).get("zone")
+		if isinstance(zone_list, list) and zone_list:
+			entries = zone_list[0].get("record")
 		if entries is None:
 			entries = result.get("dnszone")
 		entries = entries or []

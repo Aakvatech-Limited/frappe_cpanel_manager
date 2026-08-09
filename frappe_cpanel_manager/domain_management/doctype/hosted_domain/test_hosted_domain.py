@@ -169,35 +169,37 @@ class IntegrationTestHostedDomain(IntegrationTestCase):
 			True,
 			200,
 			{
-				"result": [
-					{
-						"record": [
-							{"Line": "1", "type": "SOA", "name": "syncme.example.com."},
-							{
-								"Line": "5",
-								"type": "NS",
-								"name": "syncme.example.com.",
-								"nsdname": "ns1.example.com.",
-								"ttl": "86400",
-							},
-							{
-								"Line": "6",
-								"type": "A",
-								"name": "www.syncme.example.com.",
-								"address": "192.0.2.10",
-								"ttl": "14400",
-							},
-							{
-								"Line": "7",
-								"type": "MX",
-								"name": "syncme.example.com.",
-								"exchange": "mail.syncme.example.com.",
-								"preference": "10",
-								"ttl": "14400",
-							},
-						]
-					}
-				]
+				"data": {
+					"zone": [
+						{
+							"record": [
+								{"Line": "1", "type": "SOA", "name": "syncme.example.com."},
+								{
+									"Line": "5",
+									"type": "NS",
+									"name": "syncme.example.com.",
+									"nsdname": "ns1.example.com.",
+									"ttl": "86400",
+								},
+								{
+									"Line": "6",
+									"type": "A",
+									"name": "www.syncme.example.com.",
+									"address": "192.0.2.10",
+									"ttl": "14400",
+								},
+								{
+									"Line": "7",
+									"type": "MX",
+									"name": "syncme.example.com.",
+									"exchange": "mail.syncme.example.com.",
+									"preference": "10",
+									"ttl": "14400",
+								},
+							]
+						}
+					]
+				}
 			},
 		)
 
@@ -227,19 +229,21 @@ class IntegrationTestHostedDomain(IntegrationTestCase):
 			True,
 			200,
 			{
-				"result": [
-					{
-						"record": [
-							{
-								"Line": "9",
-								"type": "A",
-								"name": "new.applyme.example.com.",
-								"address": "192.0.2.20",
-								"ttl": "14400",
-							}
-						]
-					}
-				]
+				"data": {
+					"zone": [
+						{
+							"record": [
+								{
+									"Line": "9",
+									"type": "A",
+									"name": "new.applyme.example.com.",
+									"address": "192.0.2.20",
+									"ttl": "14400",
+								}
+							]
+						}
+					]
+				}
 			},
 		)
 
