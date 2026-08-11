@@ -1,0 +1,200 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "field:server_name",
+ "creation": "2026-08-06 09:25:29.875665",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "server_name",
+  "hostname",
+  "column_break_connection",
+  "enabled",
+  "verify_ssl",
+  "section_break_ports",
+  "whm_port",
+  "cpanel_port",
+  "column_break_auth",
+  "whm_username",
+  "whm_api_token",
+  "section_break_defaults",
+  "default_hosting_package",
+  "default_ip_address",
+  "section_break_status",
+  "last_connection_test",
+  "column_break_status",
+  "last_connection_status"
+ ],
+ "fields": [
+  {
+   "fieldname": "server_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Server Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "hostname",
+   "fieldtype": "Data",
+   "label": "Hostname",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_connection",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
+  },
+  {
+   "default": "1",
+   "fieldname": "verify_ssl",
+   "fieldtype": "Check",
+   "label": "Verify SSL"
+  },
+  {
+   "fieldname": "section_break_ports",
+   "fieldtype": "Section Break",
+   "label": "Ports and Credentials"
+  },
+  {
+   "default": "2087",
+   "fieldname": "whm_port",
+   "fieldtype": "Int",
+   "label": "WHM Port"
+  },
+  {
+   "default": "2083",
+   "fieldname": "cpanel_port",
+   "fieldtype": "Int",
+   "label": "cPanel Port"
+  },
+  {
+   "fieldname": "column_break_auth",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "whm_username",
+   "fieldtype": "Data",
+   "label": "WHM Username",
+   "reqd": 1
+  },
+  {
+   "fieldname": "whm_api_token",
+   "fieldtype": "Data",
+   "label": "WHM API Token",
+   "mask": 1,
+   "permlevel": 1
+  },
+  {
+   "fieldname": "section_break_defaults",
+   "fieldtype": "Section Break",
+   "label": "Defaults"
+  },
+  {
+   "fieldname": "default_hosting_package",
+   "fieldtype": "Data",
+   "label": "Default Hosting Package"
+  },
+  {
+   "fieldname": "default_ip_address",
+   "fieldtype": "Data",
+   "label": "Default IP Address"
+  },
+  {
+   "fieldname": "section_break_status",
+   "fieldtype": "Section Break",
+   "label": "Connection Status"
+  },
+  {
+   "fieldname": "last_connection_test",
+   "fieldtype": "Datetime",
+   "label": "Last Connection Test",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_connection_status",
+   "fieldtype": "Select",
+   "label": "Last Connection Status",
+   "options": "\nSuccess\nFailed",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-09 09:16:09.182925",
+ "modified_by": "Administrator",
+ "module": "cPanel Configuration",
+ "name": "cPanel Server",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "cPanel Manager Administrator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "cPanel Manager Administrator",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "cPanel Manager Operator"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "cPanel Manager Support"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "cPanel Manager Auditor"
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -1,0 +1,187 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-08-08 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "hosted_domain",
+  "mailbox",
+  "email_address",
+  "column_break_top",
+  "quota_mb",
+  "status",
+  "section_break_password",
+  "initial_password",
+  "section_break_status",
+  "last_action_on",
+  "column_break_status",
+  "error_message",
+  "last_api_response"
+ ],
+ "fields": [
+  {
+   "fieldname": "hosted_domain",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Hosted Domain",
+   "options": "Hosted Domain",
+   "reqd": 1
+  },
+  {
+   "fieldname": "mailbox",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Mailbox",
+   "reqd": 1
+  },
+  {
+   "fieldname": "email_address",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Email Address",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_top",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "250",
+   "description": "0 means unlimited quota.",
+   "fieldname": "quota_mb",
+   "fieldtype": "Int",
+   "label": "Mailbox Quota (MB)"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nCreating\nActive\nSuspended\nFailed",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.status==\"Draft\"",
+   "fieldname": "section_break_password",
+   "fieldtype": "Section Break",
+   "label": "Initial Password"
+  },
+  {
+   "fieldname": "initial_password",
+   "fieldtype": "Password",
+   "label": "Initial Password",
+   "permlevel": 1
+  },
+  {
+   "fieldname": "section_break_status",
+   "fieldtype": "Section Break",
+   "label": "Status"
+  },
+  {
+   "fieldname": "last_action_on",
+   "fieldtype": "Datetime",
+   "label": "Last Action On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "error_message",
+   "fieldtype": "Small Text",
+   "label": "Error Message",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_api_response",
+   "fieldtype": "Code",
+   "label": "Last API Response",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-08 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Email Management",
+ "name": "Domain Email Account",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "cPanel Manager Administrator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "cPanel Manager Administrator",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "cPanel Manager Email Administrator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "cPanel Manager Email Administrator",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "cPanel Manager Support"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "cPanel Manager Auditor"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "email_address",
+ "track_changes": 1
+}
