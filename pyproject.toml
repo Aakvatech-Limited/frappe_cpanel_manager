@@ -4,7 +4,7 @@ authors = [
     { name = "    Aakvatech-Limited", email = "support@aakvatech.co.tz"}
 ]
 description = "The app is designed to provide a controlled interface for provisioning domains, managing DNS records, creating email accounts and administering mailbox quotas without requiring users to log directly into cPanel or WHM"
-requires-python = ">=3.14"
+requires-python = ">=3.10"
 readme = "README.md"
 dynamic = ["version"]
 dependencies = [
