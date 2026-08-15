@@ -7,7 +7,7 @@ from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAPIError
 
 
 @frappe.whitelist()
-def test_connection(server):
+def test_connection(server: str):
 	frappe.has_permission("cPanel Server", "write", throw=True)
 	doc = frappe.get_doc("cPanel Server", server)
 	client = CPanelClient(doc)

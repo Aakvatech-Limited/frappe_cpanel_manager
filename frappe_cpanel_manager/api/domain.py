@@ -2,7 +2,7 @@ import frappe
 
 
 @frappe.whitelist()
-def provision_domain(name):
+def provision_domain(name: str):
 	frappe.has_permission("Hosted Domain", "write", throw=True)
 	doc = frappe.get_doc("Hosted Domain", name)
 	doc.provision()
@@ -10,14 +10,14 @@ def provision_domain(name):
 
 
 @frappe.whitelist()
-def enqueue_provision(name):
+def enqueue_provision(name: str):
 	frappe.has_permission("Hosted Domain", "write", throw=True)
 	doc = frappe.get_doc("Hosted Domain", name)
 	return doc.enqueue_provision()
 
 
 @frappe.whitelist()
-def sync_dns_from_server(name):
+def sync_dns_from_server(name: str):
 	frappe.has_permission("Hosted Domain", "write", throw=True)
 	doc = frappe.get_doc("Hosted Domain", name)
 	doc.sync_dns_from_server()
@@ -25,7 +25,7 @@ def sync_dns_from_server(name):
 
 
 @frappe.whitelist()
-def apply_dns_changes(name):
+def apply_dns_changes(name: str):
 	frappe.has_permission("Hosted Domain", "write", throw=True)
 	doc = frappe.get_doc("Hosted Domain", name)
 	doc.apply_dns_changes()
@@ -33,7 +33,7 @@ def apply_dns_changes(name):
 
 
 @frappe.whitelist()
-def remove_dns_record(name, row_name):
+def remove_dns_record(name: str, row_name: str):
 	frappe.has_permission("Hosted Domain", "write", throw=True)
 	doc = frappe.get_doc("Hosted Domain", name)
 	doc.remove_dns_record(row_name)
@@ -41,7 +41,7 @@ def remove_dns_record(name, row_name):
 
 
 @frappe.whitelist()
-def suspend_domain(name, reason=None):
+def suspend_domain(name: str, reason: str | None = None):
 	frappe.has_permission("Hosted Domain", "write", throw=True)
 	doc = frappe.get_doc("Hosted Domain", name)
 	doc.suspend(reason)
@@ -49,7 +49,7 @@ def suspend_domain(name, reason=None):
 
 
 @frappe.whitelist()
-def unsuspend_domain(name):
+def unsuspend_domain(name: str):
 	frappe.has_permission("Hosted Domain", "write", throw=True)
 	doc = frappe.get_doc("Hosted Domain", name)
 	doc.unsuspend()
@@ -57,7 +57,7 @@ def unsuspend_domain(name):
 
 
 @frappe.whitelist()
-def terminate_domain(name):
+def terminate_domain(name: str):
 	# Irreversible -- destroys the account's domains, mail, files and databases on the
 	# server, so it requires delete-tier permission, not just write (Operators can
 	# provision/suspend day-to-day, but termination is Administrator-only by design).
