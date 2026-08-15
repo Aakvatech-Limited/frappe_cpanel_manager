@@ -133,6 +133,22 @@ class DomainEmailAccount(Document):
 			frappe.throw(_("Only a suspended mailbox can be unsuspended."))
 		self._set_suspension("unsuspend_login", "Active")
 
+	def delete_mailbox(self):
+		if self.status not in ("Active", "Suspended"):
+			frappe.throw(_("Only an existing mailbox (Active or Suspended) can be deleted."))
+
+		domain = self._get_hosted_domain()
+		try:
+			result = self._call_email_uapi("delete_pop", {"email": self.mailbox, "domain": domain.domain_name}, domain=domain)
+		except CPanelAPIError as e:
+			self.db_set("error_message", str(e), update_modified=False)
+			frappe.throw(str(e), exc=type(e), title=_("Mailbox Deletion Failed"))
+
+		self.db_set("status", "Deleted", update_modified=False)
+		self.db_set("last_action_on", now_datetime(), update_modified=False)
+		self.db_set("last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False)
+		self.db_set("error_message", "", update_modified=False)
+
 	def _set_suspension(self, function_name, new_status):
 		domain = self._get_hosted_domain()
 		try:

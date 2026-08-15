@@ -9,6 +9,7 @@ from frappe.tests import IntegrationTestCase, UnitTestCase
 from frappe_cpanel_manager.api.email import (
 	change_password,
 	create_mailbox,
+	delete_mailbox,
 	edit_quota,
 	suspend_mailbox,
 	unsuspend_mailbox,
@@ -196,6 +197,45 @@ class IntegrationTestDomainEmailAccount(IntegrationTestCase):
 			unsuspend_mailbox(doc.name)
 		doc.reload()
 		self.assertEqual(doc.status, "Active")
+
+	def test_delete_mailbox_requires_existing_mailbox(self):
+		doc = self.make_account(mailbox="notyetcreateddelete")
+		with self.assertRaises(frappe.ValidationError):
+			delete_mailbox(doc.name)
+
+	def test_delete_mailbox_success_sets_status_and_logs(self):
+		doc = self.make_account(mailbox="deleteme")
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):
+			create_mailbox(doc.name)
+
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):
+			delete_mailbox(doc.name)
+
+		doc.reload()
+		self.assertEqual(doc.status, "Deleted")
+		self.assertIsNotNone(doc.last_action_on)
+
+		logs = frappe.get_all(
+			"cPanel Integration Log",
+			filters={"reference_doctype": "Domain Email Account", "reference_name": doc.name},
+		)
+		self.assertEqual(len(logs), 2)
+
+		with self.assertRaises(frappe.ValidationError):
+			delete_mailbox(doc.name)
+
+	def test_delete_mailbox_failure_records_error(self):
+		doc = self.make_account(mailbox="deletewillfail")
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):
+			create_mailbox(doc.name)
+
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=FAILURE):
+			with self.assertRaises(CPanelAPIError):
+				delete_mailbox(doc.name)
+
+		doc.reload()
+		self.assertEqual(doc.status, "Active")
+		self.assertIn("already exists", doc.error_message)
 
 
 class UnitTestNormalizeMailbox(UnitTestCase):

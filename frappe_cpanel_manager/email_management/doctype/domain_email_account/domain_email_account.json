@@ -63,7 +63,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Draft\nCreating\nActive\nSuspended\nFailed",
+   "options": "Draft\nCreating\nActive\nSuspended\nFailed\nDeleted",
    "read_only": 1
   },
   {
@@ -108,7 +108,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-08 00:00:00.000000",
+ "modified": "2026-08-15 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Email Management",
  "name": "Domain Email Account",

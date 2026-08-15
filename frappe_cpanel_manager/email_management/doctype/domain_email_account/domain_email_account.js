@@ -82,6 +82,23 @@ frappe.ui.form.on("Domain Email Account", {
 					__("Edit Mailbox Quota")
 				);
 			});
+
+			frm.add_custom_button(__("Delete Mailbox"), () => {
+				frappe.confirm(
+					__("Permanently delete mailbox {0} from the live server? This cannot be undone.", [
+						frm.doc.email_address,
+					]),
+					() => {
+						frappe.call({
+							method: "frappe_cpanel_manager.api.email.delete_mailbox",
+							args: { name: frm.doc.name },
+							freeze: true,
+							freeze_message: __("Deleting mailbox..."),
+							callback: () => frm.reload_doc(),
+						});
+					}
+				);
+			});
 		}
 	},
 });

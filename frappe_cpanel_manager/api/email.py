@@ -39,3 +39,11 @@ def unsuspend_mailbox(name):
 	doc = frappe.get_doc("Domain Email Account", name)
 	doc.unsuspend()
 	return {"status": doc.status}
+
+
+@frappe.whitelist()
+def delete_mailbox(name):
+	frappe.has_permission("Domain Email Account", "write", throw=True)
+	doc = frappe.get_doc("Domain Email Account", name)
+	doc.delete_mailbox()
+	return {"status": doc.status}
