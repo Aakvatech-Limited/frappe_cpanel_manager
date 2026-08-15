@@ -1,3 +1,28 @@
+// Copyright (c) 2026, Aakvatech-Limited and contributors
+// For license information, please see license.txt
+
 frappe.query_reports["Operational Dashboard"] = {
-	filters: [],
+	filters: [
+		{
+			fieldname: "status",
+			label: __("Status"),
+			fieldtype: "Select",
+			options: [
+				"",
+				"Draft",
+				"Queued",
+				"Provisioning",
+				"Active",
+				"Suspended",
+				"Terminated",
+				"Failed",
+			],
+		},
+		{
+			fieldname: "server",
+			label: __("Server"),
+			fieldtype: "Link",
+			options: "cPanel Server",
+		},
+	],
 };
