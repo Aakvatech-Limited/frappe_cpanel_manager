@@ -47,7 +47,12 @@ frappe.ui.form.on("Domain Email Account", {
 		if (["Active", "Suspended"].includes(frm.doc.status)) {
 			frm.add_custom_button(__("Change Password"), () => {
 				frappe.prompt(
-					{ fieldname: "new_password", fieldtype: "Password", label: __("New Password"), reqd: 1 },
+					{
+						fieldname: "new_password",
+						fieldtype: "Password",
+						label: __("New Password"),
+						reqd: 1,
+					},
 					(values) => {
 						frappe.call({
 							method: "frappe_cpanel_manager.api.email.change_password",
@@ -85,9 +90,10 @@ frappe.ui.form.on("Domain Email Account", {
 
 			frm.add_custom_button(__("Delete Mailbox"), () => {
 				frappe.confirm(
-					__("Permanently delete mailbox {0} from the live server? This cannot be undone.", [
-						frm.doc.email_address,
-					]),
+					__(
+						"Permanently delete mailbox {0} from the live server? This cannot be undone.",
+						[frm.doc.email_address]
+					),
 					() => {
 						frappe.call({
 							method: "frappe_cpanel_manager.api.email.delete_mailbox",

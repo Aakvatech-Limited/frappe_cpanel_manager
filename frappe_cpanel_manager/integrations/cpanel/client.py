@@ -1,6 +1,5 @@
-import requests
-
 import frappe
+import requests
 from frappe.utils import now_datetime
 
 from frappe_cpanel_manager.integrations.cpanel.exceptions import (
@@ -25,7 +24,11 @@ def sanitize_params(value):
 	"""
 	if isinstance(value, dict):
 		return {
-			key: ("***REDACTED***" if isinstance(key, str) and key.lower() in SANITIZE_KEYS else sanitize_params(val))
+			key: (
+				"***REDACTED***"
+				if isinstance(key, str) and key.lower() in SANITIZE_KEYS
+				else sanitize_params(val)
+			)
 			for key, val in value.items()
 		}
 	if isinstance(value, list):
@@ -51,9 +54,13 @@ class CPanelClient:
 			raise CPanelUnknownResponseError("The cPanel server returned an invalid response.")
 
 		if response.status_code == 401:
-			raise CPanelAuthenticationError(self._extract_error(payload) or "Authentication with the cPanel server failed.")
+			raise CPanelAuthenticationError(
+				self._extract_error(payload) or "Authentication with the cPanel server failed."
+			)
 		if response.status_code == 403:
-			raise CPanelPermissionError(self._extract_error(payload) or "The API token does not have permission for this operation.")
+			raise CPanelPermissionError(
+				self._extract_error(payload) or "The API token does not have permission for this operation."
+			)
 
 		if not response.ok:
 			raise CPanelAPIError(self._extract_error(payload) or "The cPanel API request failed.")
@@ -85,7 +92,9 @@ class CPanelClient:
 	def _request(self, url, headers, params, method):
 		try:
 			if method.upper() == "POST":
-				return requests.post(url, headers=headers, data=params or {}, timeout=60, verify=self.verify_ssl)
+				return requests.post(
+					url, headers=headers, data=params or {}, timeout=60, verify=self.verify_ssl
+				)
 			return requests.get(url, headers=headers, params=params or {}, timeout=60, verify=self.verify_ssl)
 		except requests.exceptions.SSLError as e:
 			raise CPanelSSLError(f"SSL certificate verification failed for {self.hostname}.") from e
@@ -94,7 +103,16 @@ class CPanelClient:
 		except requests.exceptions.ConnectionError as e:
 			raise CPanelNetworkError(f"Unable to reach {self.hostname}.") from e
 
-	def _log(self, api_layer, operation, params, response=None, error=None, reference_doctype=None, reference_name=None):
+	def _log(
+		self,
+		api_layer,
+		operation,
+		params,
+		response=None,
+		error=None,
+		reference_doctype=None,
+		reference_name=None,
+	):
 		sanitized_response = None
 		if response is not None:
 			try:

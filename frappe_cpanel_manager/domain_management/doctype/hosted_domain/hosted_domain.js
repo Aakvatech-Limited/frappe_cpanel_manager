@@ -67,9 +67,10 @@ frappe.ui.form.on("Hosted Domain", {
 				return;
 			}
 			frappe.confirm(
-				__("Permanently delete {0} DNS record(s) from the live server? This cannot be undone.", [
-					selected.length,
-				]),
+				__(
+					"Permanently delete {0} DNS record(s) from the live server? This cannot be undone.",
+					[selected.length]
+				),
 				() => {
 					frappe.dom.freeze(__("Deleting DNS record(s)..."));
 					selected

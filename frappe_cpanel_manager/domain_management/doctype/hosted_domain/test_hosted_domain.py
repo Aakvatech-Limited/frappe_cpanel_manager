@@ -259,7 +259,11 @@ class IntegrationTestHostedDomain(IntegrationTestCase):
 
 		logs = frappe.get_all(
 			"cPanel Integration Log",
-			filters={"reference_doctype": "Hosted Domain", "reference_name": doc.name, "operation": "addzonerecord"},
+			filters={
+				"reference_doctype": "Hosted Domain",
+				"reference_name": doc.name,
+				"operation": "addzonerecord",
+			},
 		)
 		self.assertEqual(len(logs), 1)
 

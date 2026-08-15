@@ -46,9 +46,9 @@ class HostedDomain(Document):
 		for record_name, types in types_by_name.items():
 			if "CNAME" in types and len(types) > 1:
 				frappe.throw(
-					_("{0} has a CNAME record and cannot have any other record type at the same name.").format(
-						record_name
-					)
+					_(
+						"{0} has a CNAME record and cannot have any other record type at the same name."
+					).format(record_name)
 				)
 
 	def enqueue_provision(self):
@@ -86,7 +86,9 @@ class HostedDomain(Document):
 
 		self.db_set("status", "Active", update_modified=False)
 		self.db_set("last_provisioned_on", now_datetime(), update_modified=False)
-		self.db_set("last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False)
+		self.db_set(
+			"last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False
+		)
 		self.db_set("error_message", "", update_modified=False)
 		if self.get_password("initial_cpanel_password", raise_exception=False):
 			remove_encrypted_password(self.doctype, self.name, "initial_cpanel_password")

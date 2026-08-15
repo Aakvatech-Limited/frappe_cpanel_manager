@@ -49,7 +49,9 @@ class IntegrationTestcPanelServer(IntegrationTestCase):
 		self.assertEqual(client.whm_token, "top-secret-token")
 
 	def test_successful_call_updates_status_and_writes_sanitized_log(self):
-		success = make_mock_response(True, 200, {"metadata": {"result": 1, "reason": "OK"}, "data": {"version": "11.128"}})
+		success = make_mock_response(
+			True, 200, {"metadata": {"result": 1, "reason": "OK"}, "data": {"version": "11.128"}}
+		)
 
 		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=success):
 			result = test_connection(self.server.name)
@@ -70,7 +72,9 @@ class IntegrationTestcPanelServer(IntegrationTestCase):
 		self.assertNotIn("top-secret-token", logs[0].sanitized_request)
 
 	def test_failed_call_raises_and_logs_failure_without_leaking_token(self):
-		failure = make_mock_response(False, 401, {"metadata": {"result": 0, "reason": "Invalid Login Attempt"}})
+		failure = make_mock_response(
+			False, 401, {"metadata": {"result": 0, "reason": "Invalid Login Attempt"}}
+		)
 
 		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=failure):
 			with self.assertRaises(CPanelAuthenticationError):

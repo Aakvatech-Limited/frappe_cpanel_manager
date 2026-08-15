@@ -5,7 +5,9 @@ import frappe
 from frappe import _
 
 DOMAIN_RE = re.compile(r"^(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$")
-DNS_NAME_RE = re.compile(r"^(\*|[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\.(\*|[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?))*$")
+DNS_NAME_RE = re.compile(
+	r"^(\*|[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\.(\*|[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?))*$"
+)
 DNS_RECORD_TYPES = ("A", "AAAA", "CNAME", "MX", "NS", "SRV", "TXT")
 
 
