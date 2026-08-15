@@ -60,6 +60,37 @@ frappe.ui.form.on("Hosted Domain", {
 			__("DNS")
 		);
 
+		frm.fields_dict.dns_records.grid.add_custom_button(__("Delete on Server"), () => {
+			const selected = frm.fields_dict.dns_records.grid.get_selected_children();
+			if (!selected.length) {
+				frappe.msgprint(__("Select one or more DNS records to delete."));
+				return;
+			}
+			frappe.confirm(
+				__("Permanently delete {0} DNS record(s) from the live server? This cannot be undone.", [
+					selected.length,
+				]),
+				() => {
+					frappe.dom.freeze(__("Deleting DNS record(s)..."));
+					selected
+						.reduce(
+							(chain, row) =>
+								chain.then(() =>
+									frappe.call({
+										method: "frappe_cpanel_manager.api.domain.remove_dns_record",
+										args: { name: frm.doc.name, row_name: row.name },
+									})
+								),
+							Promise.resolve()
+						)
+						.finally(() => {
+							frappe.dom.unfreeze();
+							frm.reload_doc();
+						});
+				}
+			);
+		});
+
 		if (frm.doc.provisioning_type === "New cPanel Account") {
 			frm.add_custom_button(__("Email Accounts"), () => {
 				frappe.set_route("list", "Domain Email Account", { hosted_domain: frm.doc.name });
