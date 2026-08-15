@@ -29,33 +29,34 @@ def execute(filters=None):
 		{"label": _("Error Message"), "fieldname": "error_message", "fieldtype": "Data", "width": 320},
 	]
 
-	conditions, values = ["status = 'Failed'"], {}
+	query_filters = {"status": "Failed"}
 	if filters.get("server"):
-		conditions.append("server = %(server)s")
-		values["server"] = filters.get("server")
-	if filters.get("from_date"):
-		conditions.append("request_time >= %(from_date)s")
-		values["from_date"] = filters.get("from_date")
-	if filters.get("to_date"):
-		conditions.append("request_time <= %(to_date)s")
-		values["to_date"] = filters.get("to_date")
+		query_filters["server"] = filters.get("server")
+	if filters.get("from_date") and filters.get("to_date"):
+		query_filters["request_time"] = ["between", [filters.get("from_date"), filters.get("to_date")]]
+	elif filters.get("from_date"):
+		query_filters["request_time"] = [">=", filters.get("from_date")]
+	elif filters.get("to_date"):
+		query_filters["request_time"] = ["<=", filters.get("to_date")]
 
-	where_clause = "WHERE " + " AND ".join(conditions)
-	data = frappe.db.sql(
-		f"""
-		SELECT
-			request_time AS date,
-			server,
-			operation,
-			name AS log,
-			CONCAT_WS(' ', reference_doctype, reference_name) AS reference,
-			error_message
-		FROM `tabcPanel Integration Log`
-		{where_clause}
-		ORDER BY request_time DESC
-		""",
-		values,
-		as_dict=True,
+	data = frappe.get_all(
+		"cPanel Integration Log",
+		filters=query_filters,
+		fields=[
+			"request_time as date",
+			"server",
+			"operation",
+			"name as log",
+			"reference_doctype",
+			"reference_name",
+			"error_message",
+		],
+		order_by="request_time desc",
 	)
+
+	for row in data:
+		reference_doctype = row.pop("reference_doctype", None)
+		reference_name = row.pop("reference_name", None)
+		row["reference"] = " ".join(part for part in (reference_doctype, reference_name) if part)
 
 	return columns, data

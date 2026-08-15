@@ -28,30 +28,24 @@ def execute(filters=None):
 		{"label": _("Provisioned On"), "fieldname": "provisioned_on", "fieldtype": "Datetime", "width": 170},
 	]
 
-	conditions, values = [], {}
+	query_filters = {}
 	if filters.get("status"):
-		conditions.append("status = %(status)s")
-		values["status"] = filters.get("status")
+		query_filters["status"] = filters.get("status")
 	if filters.get("server"):
-		conditions.append("server = %(server)s")
-		values["server"] = filters.get("server")
+		query_filters["server"] = filters.get("server")
 
-	where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-	data = frappe.db.sql(
-		f"""
-		SELECT
-			domain_name AS domain,
-			server,
-			provisioning_type,
-			cpanel_username,
-			status,
-			last_provisioned_on AS provisioned_on
-		FROM `tabHosted Domain`
-		{where_clause}
-		ORDER BY domain_name ASC
-		""",
-		values,
-		as_dict=True,
+	data = frappe.get_all(
+		"Hosted Domain",
+		filters=query_filters,
+		fields=[
+			"domain_name as domain",
+			"server",
+			"provisioning_type",
+			"cpanel_username",
+			"status",
+			"last_provisioned_on as provisioned_on",
+		],
+		order_by="domain_name asc",
 	)
 
 	return columns, data

@@ -3,6 +3,7 @@
 
 import frappe
 from frappe import _
+from frappe.query_builder.functions import Count
 
 
 def execute(filters=None):
@@ -22,33 +23,37 @@ def execute(filters=None):
 		{"label": _("Log Count"), "fieldname": "log_count", "fieldtype": "Int", "width": 90},
 	]
 
-	conditions, values = [], {}
+	query_filters = {}
 	if filters.get("status"):
-		conditions.append("hd.status = %(status)s")
-		values["status"] = filters.get("status")
+		query_filters["status"] = filters.get("status")
 	if filters.get("server"):
-		conditions.append("hd.server = %(server)s")
-		values["server"] = filters.get("server")
+		query_filters["server"] = filters.get("server")
 
-	where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-	data = frappe.db.sql(
-		f"""
-		SELECT
-			hd.domain_name AS domain,
-			hd.server,
-			hd.status,
-			hd.last_provisioned_on AS last_activity,
-			(
-				SELECT COUNT(*)
-				FROM `tabcPanel Integration Log` log
-				WHERE log.reference_doctype = 'Hosted Domain' AND log.reference_name = hd.name
-			) AS log_count
-		FROM `tabHosted Domain` hd
-		{where_clause}
-		ORDER BY hd.last_provisioned_on DESC, hd.domain_name ASC
-		""",
-		values,
-		as_dict=True,
+	data = frappe.get_all(
+		"Hosted Domain",
+		filters=query_filters,
+		fields=[
+			"name",
+			"domain_name as domain",
+			"server",
+			"status",
+			"last_provisioned_on as last_activity",
+		],
+		order_by="last_provisioned_on desc, domain_name asc",
 	)
+
+	# One grouped query for every domain's log count, rather than a correlated
+	# subquery per row.
+	log = frappe.qb.DocType("cPanel Integration Log")
+	counts = (
+		frappe.qb.from_(log)
+		.select(log.reference_name, Count(log.name).as_("log_count"))
+		.where(log.reference_doctype == "Hosted Domain")
+		.groupby(log.reference_name)
+	).run(as_dict=True)
+	counts_by_domain = {row.reference_name: row.log_count for row in counts}
+
+	for row in data:
+		row["log_count"] = counts_by_domain.get(row.pop("name"), 0)
 
 	return columns, data

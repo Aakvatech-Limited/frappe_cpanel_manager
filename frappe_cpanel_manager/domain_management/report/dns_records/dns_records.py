@@ -17,31 +17,36 @@ def execute(filters=None):
 		{"label": _("Synced"), "fieldname": "synced", "fieldtype": "Data", "width": 80},
 	]
 
-	conditions, values = [], {}
-	if filters.get("domain"):
-		conditions.append("hd.name = %(domain)s")
-		values["domain"] = filters.get("domain")
-	if filters.get("record_type"):
-		conditions.append("ddr.record_type = %(record_type)s")
-		values["record_type"] = filters.get("record_type")
+	record = frappe.qb.DocType("Domain DNS Record")
+	domain = frappe.qb.DocType("Hosted Domain")
 
-	where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-	data = frappe.db.sql(
-		f"""
-		SELECT
-			hd.domain_name AS domain,
-			ddr.record_type,
-			ddr.record_name,
-			ddr.value,
-			ddr.ttl,
-			IF(ddr.zone_line IS NULL OR ddr.zone_line = '', 'No', 'Yes') AS synced
-		FROM `tabDomain DNS Record` ddr
-		INNER JOIN `tabHosted Domain` hd ON hd.name = ddr.parent
-		{where_clause}
-		ORDER BY hd.domain_name ASC, ddr.record_type ASC, ddr.record_name ASC
-		""",
-		values,
-		as_dict=True,
+	query = (
+		frappe.qb.from_(record)
+		.inner_join(domain)
+		.on(domain.name == record.parent)
+		.select(
+			domain.domain_name.as_("domain"),
+			record.record_type,
+			record.record_name,
+			record.value,
+			record.ttl,
+			record.zone_line,
+		)
+		.orderby(domain.domain_name)
+		.orderby(record.record_type)
+		.orderby(record.record_name)
 	)
+
+	if filters.get("domain"):
+		query = query.where(domain.name == filters.get("domain"))
+	if filters.get("record_type"):
+		query = query.where(record.record_type == filters.get("record_type"))
+
+	data = query.run(as_dict=True)
+
+	# `zone_line` is only set once a row has been pushed to (or pulled from) the
+	# server, so an empty one means the record has not been applied yet.
+	for row in data:
+		row["synced"] = "Yes" if row.pop("zone_line", None) else "No"
 
 	return columns, data

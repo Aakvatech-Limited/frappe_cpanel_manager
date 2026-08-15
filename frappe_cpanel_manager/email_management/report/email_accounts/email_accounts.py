@@ -16,30 +16,26 @@ def execute(filters=None):
 		{"label": _("Last Action On"), "fieldname": "last_action_on", "fieldtype": "Datetime", "width": 170},
 	]
 
-	conditions, values = [], {}
-	if filters.get("status"):
-		conditions.append("dea.status = %(status)s")
-		values["status"] = filters.get("status")
-	if filters.get("hosted_domain"):
-		conditions.append("dea.hosted_domain = %(hosted_domain)s")
-		values["hosted_domain"] = filters.get("hosted_domain")
+	account = frappe.qb.DocType("Domain Email Account")
+	domain = frappe.qb.DocType("Hosted Domain")
 
-	where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-	data = frappe.db.sql(
-		f"""
-		SELECT
-			dea.email_address,
-			hd.domain_name AS domain,
-			dea.quota_mb,
-			dea.status,
-			dea.last_action_on
-		FROM `tabDomain Email Account` dea
-		INNER JOIN `tabHosted Domain` hd ON hd.name = dea.hosted_domain
-		{where_clause}
-		ORDER BY dea.email_address ASC
-		""",
-		values,
-		as_dict=True,
+	query = (
+		frappe.qb.from_(account)
+		.inner_join(domain)
+		.on(domain.name == account.hosted_domain)
+		.select(
+			account.email_address,
+			domain.domain_name.as_("domain"),
+			account.quota_mb,
+			account.status,
+			account.last_action_on,
+		)
+		.orderby(account.email_address)
 	)
 
-	return columns, data
+	if filters.get("status"):
+		query = query.where(account.status == filters.get("status"))
+	if filters.get("hosted_domain"):
+		query = query.where(account.hosted_domain == filters.get("hosted_domain"))
+
+	return columns, query.run(as_dict=True)
