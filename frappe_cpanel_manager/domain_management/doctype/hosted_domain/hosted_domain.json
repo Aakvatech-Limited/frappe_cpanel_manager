@@ -66,7 +66,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Draft\nQueued\nProvisioning\nActive\nFailed",
+   "options": "Draft\nQueued\nProvisioning\nActive\nSuspended\nTerminated\nFailed",
    "read_only": 1
   },
   {
@@ -158,7 +158,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-08 00:00:00.000000",
+ "modified": "2026-08-15 00:00:01.000000",
  "modified_by": "Administrator",
  "module": "Domain Management",
  "name": "Hosted Domain",

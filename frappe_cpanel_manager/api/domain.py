@@ -38,3 +38,30 @@ def remove_dns_record(name, row_name):
 	doc = frappe.get_doc("Hosted Domain", name)
 	doc.remove_dns_record(row_name)
 	return {"dns_records": len(doc.dns_records)}
+
+
+@frappe.whitelist()
+def suspend_domain(name, reason=None):
+	frappe.has_permission("Hosted Domain", "write", throw=True)
+	doc = frappe.get_doc("Hosted Domain", name)
+	doc.suspend(reason)
+	return {"status": doc.status}
+
+
+@frappe.whitelist()
+def unsuspend_domain(name):
+	frappe.has_permission("Hosted Domain", "write", throw=True)
+	doc = frappe.get_doc("Hosted Domain", name)
+	doc.unsuspend()
+	return {"status": doc.status}
+
+
+@frappe.whitelist()
+def terminate_domain(name):
+	# Irreversible -- destroys the account's domains, mail, files and databases on the
+	# server, so it requires delete-tier permission, not just write (Operators can
+	# provision/suspend day-to-day, but termination is Administrator-only by design).
+	frappe.has_permission("Hosted Domain", "delete", throw=True)
+	doc = frappe.get_doc("Hosted Domain", name)
+	doc.terminate()
+	return {"status": doc.status}

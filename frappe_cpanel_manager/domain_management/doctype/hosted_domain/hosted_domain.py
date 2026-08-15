@@ -119,6 +119,74 @@ class HostedDomain(Document):
 			params["ip"] = self.ip_address
 		return "createacct", params
 
+	def suspend(self, reason=None):
+		"""Suspend the cPanel account itself (WHM `suspendacct`), not just a mailbox --
+		this takes the whole account offline, not just one email address."""
+		self._require_cpanel_account(_("suspended"))
+		if self.status != "Active":
+			frappe.throw(_("Only an Active domain's account can be suspended."))
+
+		params = {"user": self.cpanel_username}
+		if reason:
+			params["reason"] = reason
+		result = self._call_account_whm("suspendacct", params, _("Account Suspension Failed"))
+
+		self.db_set("status", "Suspended", update_modified=False)
+		self.db_set(
+			"last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False
+		)
+		self.db_set("error_message", "", update_modified=False)
+
+	def unsuspend(self):
+		self._require_cpanel_account(_("unsuspended"))
+		if self.status != "Suspended":
+			frappe.throw(_("Only a Suspended domain's account can be unsuspended."))
+
+		result = self._call_account_whm(
+			"unsuspendacct", {"user": self.cpanel_username}, _("Account Unsuspension Failed")
+		)
+
+		self.db_set("status", "Active", update_modified=False)
+		self.db_set(
+			"last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False
+		)
+		self.db_set("error_message", "", update_modified=False)
+
+	def terminate(self):
+		"""Permanently remove the cPanel account (WHM `removeacct`) -- irreversible: destroys
+		the account's domains, mail, files and databases on the server. Frappe's own
+		Hosted Domain / Domain Email Account records are kept as a historical record,
+		matching this app's established audit-trail-over-deletion convention."""
+		self._require_cpanel_account(_("terminated"))
+		if self.status not in ("Active", "Suspended"):
+			frappe.throw(_("Only an Active or Suspended domain's account can be terminated."))
+
+		result = self._call_account_whm(
+			"removeacct", {"user": self.cpanel_username}, _("Account Termination Failed")
+		)
+
+		self.db_set("status", "Terminated", update_modified=False)
+		self.db_set(
+			"last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False
+		)
+		self.db_set("error_message", "", update_modified=False)
+
+	def _require_cpanel_account(self, action):
+		if self.provisioning_type != "New cPanel Account" or not self.cpanel_username:
+			frappe.throw(
+				_("{0} is DNS Only and has no cPanel account to be {1}.").format(self.domain_name, action)
+			)
+
+	def _call_account_whm(self, function_name, params, error_title):
+		client = CPanelClient(self.server)
+		try:
+			return client.call_whm(
+				function_name, params, reference_doctype=self.doctype, reference_name=self.name
+			)
+		except CPanelAPIError as e:
+			self.db_set("error_message", str(e), update_modified=False)
+			frappe.throw(str(e), exc=type(e), title=error_title)
+
 	def sync_dns_from_server(self):
 		"""Overwrite the local `dns_records` table with the zone currently on the server."""
 		client = CPanelClient(self.server)

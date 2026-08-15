@@ -7,11 +7,11 @@ frappe.ui.form.on("Hosted Domain", {
 			return;
 		}
 
-		if (["Queued", "Provisioning"].includes(frm.doc.status)) {
+		if (["Queued", "Provisioning", "Terminated"].includes(frm.doc.status)) {
 			return;
 		}
 
-		if (frm.doc.status !== "Active") {
+		if (["Draft", "Failed"].includes(frm.doc.status)) {
 			frm.add_custom_button(__("Provision"), () => {
 				frappe.call({
 					method: "frappe_cpanel_manager.api.domain.provision_domain",
@@ -29,6 +29,85 @@ frappe.ui.form.on("Hosted Domain", {
 					callback: () => frm.reload_doc(),
 				});
 			});
+			return;
+		}
+
+		const isNewAccount = frm.doc.provisioning_type === "New cPanel Account";
+
+		if (isNewAccount && frm.doc.status === "Active") {
+			frm.add_custom_button(
+				__("Suspend Account"),
+				() => {
+					frappe.prompt(
+						{ fieldname: "reason", fieldtype: "Data", label: __("Reason (optional)") },
+						(values) => {
+							frappe.call({
+								method: "frappe_cpanel_manager.api.domain.suspend_domain",
+								args: { name: frm.doc.name, reason: values.reason },
+								freeze: true,
+								freeze_message: __("Suspending account..."),
+								callback: () => frm.reload_doc(),
+							});
+						},
+						__("Suspend cPanel Account")
+					);
+				},
+				__("Account")
+			);
+		}
+
+		if (isNewAccount && frm.doc.status === "Suspended") {
+			frm.add_custom_button(
+				__("Unsuspend Account"),
+				() => {
+					frappe.call({
+						method: "frappe_cpanel_manager.api.domain.unsuspend_domain",
+						args: { name: frm.doc.name },
+						freeze: true,
+						freeze_message: __("Unsuspending account..."),
+						callback: () => frm.reload_doc(),
+					});
+				},
+				__("Account")
+			);
+		}
+
+		if (isNewAccount && ["Active", "Suspended"].includes(frm.doc.status)) {
+			frm.add_custom_button(
+				__("Terminate Account"),
+				() => {
+					frappe.prompt(
+						{
+							fieldname: "confirm_domain",
+							fieldtype: "Data",
+							label: __("Type {0} to confirm", [frm.doc.domain_name]),
+							reqd: 1,
+						},
+						(values) => {
+							if (values.confirm_domain !== frm.doc.domain_name) {
+								frappe.msgprint(
+									__("Domain name did not match. Termination cancelled.")
+								);
+								return;
+							}
+							frappe.call({
+								method: "frappe_cpanel_manager.api.domain.terminate_domain",
+								args: { name: frm.doc.name },
+								freeze: true,
+								freeze_message: __("Terminating account..."),
+								callback: () => frm.reload_doc(),
+							});
+						},
+						__(
+							"Terminate cPanel Account -- this permanently deletes the account, domains, mail and files"
+						)
+					);
+				},
+				__("Account")
+			);
+		}
+
+		if (frm.doc.status !== "Active") {
 			return;
 		}
 

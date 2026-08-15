@@ -10,7 +10,10 @@ from frappe_cpanel_manager.api.domain import (
 	apply_dns_changes,
 	provision_domain,
 	remove_dns_record,
+	suspend_domain,
 	sync_dns_from_server,
+	terminate_domain,
+	unsuspend_domain,
 )
 from frappe_cpanel_manager.domain_management.utils import normalize_domain
 from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAPIError, CPanelDuplicateResourceError
@@ -306,6 +309,112 @@ class IntegrationTestHostedDomain(IntegrationTestCase):
 			},
 		)
 		self.assertEqual(len(logs), 1)
+
+	def test_suspend_and_unsuspend_account_toggle_status(self):
+		doc = self.make_domain(domain_name="suspendme.example.com")
+		doc.db_set("status", "Active", update_modified=False)
+		success = make_mock_response(True, 200, {"metadata": {"result": 1, "reason": "OK"}})
+
+		with patch(
+			"frappe_cpanel_manager.integrations.cpanel.client.requests.get",
+			return_value=success,
+		):
+			suspend_domain(doc.name, reason="non-payment")
+		doc.reload()
+		self.assertEqual(doc.status, "Suspended")
+
+		with self.assertRaises(frappe.ValidationError):
+			suspend_domain(doc.name)
+
+		with patch(
+			"frappe_cpanel_manager.integrations.cpanel.client.requests.get",
+			return_value=success,
+		):
+			unsuspend_domain(doc.name)
+		doc.reload()
+		self.assertEqual(doc.status, "Active")
+
+	def test_suspend_rejected_for_dns_only_domain(self):
+		doc = self.make_domain(
+			domain_name="dnsonlysuspend.example.com",
+			provisioning_type="DNS Only",
+			cpanel_username=None,
+			contact_email=None,
+			initial_cpanel_password=None,
+		)
+		doc.db_set("status", "Active", update_modified=False)
+		with self.assertRaises(frappe.ValidationError):
+			suspend_domain(doc.name)
+
+	def test_suspend_failure_records_error_and_keeps_status(self):
+		doc = self.make_domain(domain_name="suspendfail.example.com")
+		doc.db_set("status", "Active", update_modified=False)
+		failure = make_mock_response(
+			False, 422, {"metadata": {"result": 0, "reason": "Account already suspended."}}
+		)
+
+		with patch(
+			"frappe_cpanel_manager.integrations.cpanel.client.requests.get",
+			return_value=failure,
+		):
+			with self.assertRaises(CPanelAPIError):
+				suspend_domain(doc.name)
+
+		doc.reload()
+		self.assertEqual(doc.status, "Active")
+		self.assertIn("already suspended", doc.error_message)
+
+	def test_terminate_account_success_from_active(self):
+		doc = self.make_domain(domain_name="terminateme.example.com")
+		doc.db_set("status", "Active", update_modified=False)
+		success = make_mock_response(True, 200, {"metadata": {"result": 1, "reason": "OK"}})
+
+		with patch(
+			"frappe_cpanel_manager.integrations.cpanel.client.requests.get",
+			return_value=success,
+		):
+			terminate_domain(doc.name)
+
+		doc.reload()
+		self.assertEqual(doc.status, "Terminated")
+
+		logs = frappe.get_all(
+			"cPanel Integration Log",
+			filters={
+				"reference_doctype": "Hosted Domain",
+				"reference_name": doc.name,
+				"operation": "removeacct",
+			},
+		)
+		self.assertEqual(len(logs), 1)
+
+	def test_terminate_rejected_when_not_active_or_suspended(self):
+		doc = self.make_domain(domain_name="terminatedraft.example.com")
+		with self.assertRaises(frappe.ValidationError):
+			terminate_domain(doc.name)
+
+	def test_terminate_requires_delete_permission(self):
+		doc = self.make_domain(domain_name="terminateperm.example.com")
+		doc.db_set("status", "Active", update_modified=False)
+		operator_user = frappe.get_doc(
+			{
+				"doctype": "User",
+				"email": f"cpanelsec-terminate-{frappe.generate_hash(length=6)}@example.test",
+				"first_name": "Terminate",
+				"send_welcome_email": 0,
+				"roles": [{"role": "cPanel Manager Operator"}],
+			}
+		).insert(ignore_permissions=True)
+		try:
+			frappe.set_user(operator_user.name)
+			with self.assertRaises(frappe.PermissionError):
+				terminate_domain(doc.name)
+		finally:
+			frappe.set_user("Administrator")
+			frappe.delete_doc("User", operator_user.name, force=True)
+
+		doc.reload()
+		self.assertEqual(doc.status, "Active")
 
 
 class UnitTestNormalizeDomain(UnitTestCase):
