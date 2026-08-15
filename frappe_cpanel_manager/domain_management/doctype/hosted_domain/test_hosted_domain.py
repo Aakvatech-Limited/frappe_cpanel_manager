@@ -196,6 +196,15 @@ class IntegrationTestHostedDomain(IntegrationTestCase):
 									"preference": "10",
 									"ttl": "14400",
 								},
+								{
+									"Line": "8",
+									"type": "CAA",
+									"name": "syncme.example.com.",
+									"flag": "0",
+									"tag": "issue",
+									"value": "letsencrypt.org",
+									"ttl": "14400",
+								},
 							]
 						}
 					]
@@ -211,13 +220,17 @@ class IntegrationTestHostedDomain(IntegrationTestCase):
 
 		doc.reload()
 		records = {row.record_type: row for row in doc.dns_records}
-		self.assertEqual(len(doc.dns_records), 3)
+		self.assertEqual(len(doc.dns_records), 4)
 		self.assertEqual(records["NS"].record_name, "@")
 		self.assertEqual(records["NS"].zone_line, "5")
 		self.assertEqual(records["A"].record_name, "www")
 		self.assertEqual(records["A"].value, "192.0.2.10")
 		self.assertEqual(records["A"].zone_line, "6")
 		self.assertEqual(records["MX"].priority, 10)
+		self.assertEqual(records["CAA"].value, "letsencrypt.org")
+		self.assertEqual(records["CAA"].caa_flag, 0)
+		self.assertEqual(records["CAA"].caa_tag, "issue")
+		self.assertEqual(records["CAA"].zone_line, "8")
 
 	def test_apply_dns_changes_adds_and_edits_then_resyncs(self):
 		doc = self.make_domain(domain_name="applyme.example.com")

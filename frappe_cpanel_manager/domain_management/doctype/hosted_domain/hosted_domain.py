@@ -158,6 +158,7 @@ class HostedDomain(Document):
 				or entry.get("nsdname")
 				or entry.get("target")
 				or entry.get("txtdata")
+				or (entry.get("value") if record_type == "CAA" else None)
 				or ""
 			)
 			rows.append(
@@ -169,6 +170,8 @@ class HostedDomain(Document):
 					"priority": cint(entry.get("preference") or entry.get("priority") or 0) or None,
 					"weight": cint(entry.get("weight")) if record_type == "SRV" else None,
 					"port": cint(entry.get("port")) if record_type == "SRV" else None,
+					"caa_flag": cint(entry.get("flag")) if record_type == "CAA" else None,
+					"caa_tag": entry.get("tag") if record_type == "CAA" else None,
 					"zone_line": entry.get("Line") or entry.get("line"),
 				}
 			)
@@ -215,6 +218,10 @@ class HostedDomain(Document):
 			params["priority"] = row.priority
 			params["weight"] = row.weight
 			params["port"] = row.port
+		elif row.record_type == "CAA":
+			params["flag"] = row.caa_flag or 0
+			params["tag"] = row.caa_tag
+			params["value"] = row.value
 		elif row.record_type == "TXT":
 			params["txtdata"] = row.value
 		return params

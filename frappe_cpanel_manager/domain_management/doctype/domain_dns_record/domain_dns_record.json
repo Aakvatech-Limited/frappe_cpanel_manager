@@ -13,6 +13,8 @@
   "priority",
   "weight",
   "port",
+  "caa_flag",
+  "caa_tag",
   "zone_line"
  ],
  "fields": [
@@ -22,7 +24,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Type",
-   "options": "A\nAAAA\nCNAME\nMX\nNS\nSRV\nTXT",
+   "options": "A\nAAAA\nCAA\nCNAME\nMX\nNS\nSRV\nTXT",
    "reqd": 1
   },
   {
@@ -73,6 +75,23 @@
    "mandatory_depends_on": "eval:doc.record_type==\"SRV\""
   },
   {
+   "default": "0",
+   "depends_on": "eval:doc.record_type==\"CAA\"",
+   "description": "0 = non-critical, 128 = critical",
+   "fieldname": "caa_flag",
+   "fieldtype": "Int",
+   "label": "CAA Flag",
+   "mandatory_depends_on": "eval:doc.record_type==\"CAA\""
+  },
+  {
+   "depends_on": "eval:doc.record_type==\"CAA\"",
+   "fieldname": "caa_tag",
+   "fieldtype": "Select",
+   "label": "CAA Tag",
+   "mandatory_depends_on": "eval:doc.record_type==\"CAA\"",
+   "options": "issue\nissuewild\niodef"
+  },
+  {
    "fieldname": "zone_line",
    "fieldtype": "Data",
    "hidden": 1,
@@ -83,7 +102,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-08-08 00:00:00.000000",
+ "modified": "2026-08-15 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Domain Management",
  "name": "Domain DNS Record",

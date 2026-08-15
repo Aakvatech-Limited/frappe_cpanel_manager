@@ -8,7 +8,8 @@ DOMAIN_RE = re.compile(r"^(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-
 DNS_NAME_RE = re.compile(
 	r"^(\*|[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\.(\*|[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?))*$"
 )
-DNS_RECORD_TYPES = ("A", "AAAA", "CNAME", "MX", "NS", "SRV", "TXT")
+DNS_RECORD_TYPES = ("A", "AAAA", "CAA", "CNAME", "MX", "NS", "SRV", "TXT")
+CAA_TAGS = ("issue", "issuewild", "iodef")
 
 
 def normalize_domain(raw_domain):
@@ -54,7 +55,7 @@ def validate_dns_record_name(record_name):
 
 def validate_dns_record_value(record_type, value):
 	"""Type-specific validation for a DNS record's value, per RFC-shaped constraints for the
-	record types this app manages (A, AAAA, CNAME, MX, NS, SRV, TXT)."""
+	record types this app manages (A, AAAA, CAA, CNAME, MX, NS, SRV, TXT)."""
 	if not value or not value.strip():
 		frappe.throw(_("Value is required for a {0} record.").format(record_type))
 	value = value.strip().rstrip(".")
@@ -72,8 +73,32 @@ def validate_dns_record_value(record_type, value):
 	elif record_type in ("CNAME", "MX", "NS", "SRV"):
 		if not DOMAIN_RE.match(value.lower()):
 			frappe.throw(_("{0} is not a valid target domain for a {1} record.").format(value, record_type))
-
 	return value
+
+
+def validate_caa_tag(tag):
+	if tag not in CAA_TAGS:
+		frappe.throw(_("{0} is not a valid CAA tag. Use one of: {1}").format(tag, ", ".join(CAA_TAGS)))
+	return tag
+
+
+def validate_caa_value(tag, value):
+	"""CAA's value shape depends on its tag: issue/issuewild take a CA domain (or "; " to
+	deny all CAs); iodef takes a reporting URI (mailto: or http(s):), not a domain."""
+	if tag in ("issue", "issuewild"):
+		if value != ";" and not DOMAIN_RE.match(value.lower()):
+			frappe.throw(
+				_(
+					"{0} is not a valid CAA value for tag '{1}' -- expected a CA domain (e.g. letsencrypt.org) or ';'."
+				).format(value, tag)
+			)
+	elif tag == "iodef":
+		if not re.match(r"^(mailto:|https?://)", value.lower()):
+			frappe.throw(
+				_(
+					"{0} is not a valid CAA value for tag 'iodef' -- expected a mailto: or http(s):// URI."
+				).format(value)
+			)
 
 
 def dns_name_to_fqdn(record_name, domain):
