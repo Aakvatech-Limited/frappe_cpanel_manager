@@ -8,7 +8,10 @@ from frappe.tests import IntegrationTestCase, UnitTestCase
 
 from frappe_cpanel_manager.api.server import test_connection
 from frappe_cpanel_manager.integrations.cpanel.client import CPanelClient, sanitize_params
-from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAuthenticationError
+from frappe_cpanel_manager.integrations.cpanel.exceptions import (
+	CPanelAPIError,
+	CPanelAuthenticationError,
+)
 
 EXTRA_TEST_RECORD_DEPENDENCIES = []
 IGNORE_TEST_RECORD_DEPENDENCIES = []
@@ -124,3 +127,77 @@ class UnitTestCPanelClientHelpers(UnitTestCase):
 		client = CPanelClient.__new__(CPanelClient)
 		error = client._extract_error({"metadata": {"result": 1}, "data": {}})
 		self.assertIsNone(error)
+
+	# The API 2 payloads below are copied verbatim from a live server (shaule.space),
+	# not invented -- an API 2 failure used to be reported as success.
+	def test_extract_error_reads_api2_error_key(self):
+		client = CPanelClient.__new__(CPanelClient)
+		error = client._extract_error(
+			{
+				"cpanelresult": {
+					"apiversion": 2,
+					"data": {
+						"reason": "Could not find function 'nope' in module 'Park'",
+						"result": 0,
+					},
+					"error": "Could not find function 'nope' in module 'Park'",
+					"func": "nope",
+					"module": "Park",
+				}
+			}
+		)
+		self.assertEqual(error, "Could not find function 'nope' in module 'Park'")
+
+	def test_extract_error_reads_api2_data_result_without_error_key(self):
+		client = CPanelClient.__new__(CPanelClient)
+		error = client._extract_error(
+			{"cpanelresult": {"apiversion": 2, "data": {"result": 0, "reason": "Quota exceeded"}}}
+		)
+		self.assertEqual(error, "Quota exceeded")
+
+	def test_extract_error_reads_api2_event_failure(self):
+		client = CPanelClient.__new__(CPanelClient)
+		error = client._extract_error(
+			{"cpanelresult": {"apiversion": 2, "data": [], "event": {"result": 0, "reason": "Denied"}}}
+		)
+		self.assertEqual(error, "Denied")
+
+	def test_extract_error_returns_none_on_successful_api2_payload(self):
+		client = CPanelClient.__new__(CPanelClient)
+		error = client._extract_error(
+			{
+				"cpanelresult": {
+					"apiversion": 2,
+					"data": [],
+					"event": {"result": 1},
+					"func": "listaddondomains",
+					"module": "Park",
+					"postevent": {"result": 1},
+					"preevent": {"result": 1},
+				}
+			}
+		)
+		self.assertIsNone(error)
+
+	def test_extract_error_returns_none_on_successful_uapi_payload(self):
+		client = CPanelClient.__new__(CPanelClient)
+		error = client._extract_error(
+			{
+				"apiversion": 3,
+				"func": "list_domains",
+				"module": "DomainInfo",
+				"result": {"data": {"main_domain": "shaule.space"}, "errors": None, "status": 1},
+			}
+		)
+		self.assertIsNone(error)
+
+	def test_api2_failure_raises_instead_of_returning_silently(self):
+		"""The regression this fix exists for: a failed API 2 call must raise."""
+		client = CPanelClient.__new__(CPanelClient)
+		response = make_mock_response(
+			True,
+			200,
+			{"cpanelresult": {"apiversion": 2, "data": {"result": 0}, "error": "Quota exceeded"}},
+		)
+		with self.assertRaises(CPanelAPIError):
+			client._check_response(response)

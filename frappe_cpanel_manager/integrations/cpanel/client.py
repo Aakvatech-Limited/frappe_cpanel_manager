@@ -1,5 +1,6 @@
 import frappe
 import requests
+from frappe import _
 from frappe.utils import now_datetime
 
 from frappe_cpanel_manager.integrations.cpanel.exceptions import (
@@ -13,6 +14,12 @@ from frappe_cpanel_manager.integrations.cpanel.exceptions import (
 )
 
 SANITIZE_KEYS = {"password", "pass", "token", "whm_api_token", "new_password", "cpanel_token"}
+
+# cPanel exposes two account-level APIs through the WHM proxy. UAPI is the modern
+# one and the default here; API 2 is the legacy layer that still owns a few
+# modules UAPI never got (addon and parked domains among them).
+UAPI_VERSION = 3
+API2_VERSION = 2
 
 
 def sanitize_params(value):
@@ -72,20 +79,46 @@ class CPanelClient:
 		return payload
 
 	def _extract_error(self, payload):
+		"""Pull a failure reason out of any of the three response envelopes cPanel uses.
+
+		Each API layer signals failure differently, and a layer that isn't handled
+		here fails *silently* -- the call returns normally and the caller records
+		success. All three shapes below were confirmed against a live server.
+		"""
 		if not isinstance(payload, dict):
 			return None
 
+		# WHM API 1: {"metadata": {"result": 0, "reason": "..."}}
 		metadata = payload.get("metadata") or {}
-		if metadata.get("result") in (0, False):
+		if metadata.get("result") in (0, "0", False):
 			return metadata.get("reason")
 
+		# cPanel UAPI (apiversion 3): {"result": {"errors": [...]}}
 		result = payload.get("result")
 		if isinstance(result, dict):
 			errors = result.get("errors")
 			if isinstance(errors, list):
-				return "\n".join(str(error) for error in errors if error)
-			if errors:
+				joined = "\n".join(str(error) for error in errors if error)
+				if joined:
+					return joined
+			elif errors:
 				return str(errors)
+
+		# cPanel API 2: {"cpanelresult": {"error": "...", "data": {"result": 0, "reason": "..."}}}
+		# A successful API 2 call has no "error" key and returns data as a list.
+		cpanelresult = payload.get("cpanelresult")
+		if isinstance(cpanelresult, dict):
+			error = cpanelresult.get("error")
+			if error:
+				return str(error)
+
+			data = cpanelresult.get("data")
+			if isinstance(data, dict) and data.get("result") in (0, "0", False):
+				return data.get("reason") or _("The cPanel API 2 request failed.")
+
+			event = cpanelresult.get("event") or {}
+			if isinstance(event, dict) and event.get("result") in (0, "0", False):
+				return event.get("reason") or _("The cPanel API 2 request failed.")
 
 		return None
 
@@ -217,19 +250,30 @@ class CPanelClient:
 		return result
 
 	def call_uapi_via_whm(
-		self, cpanel_username, module, function_name, params=None, reference_doctype=None, reference_name=None
+		self,
+		cpanel_username,
+		module,
+		function_name,
+		params=None,
+		reference_doctype=None,
+		reference_name=None,
+		apiversion=UAPI_VERSION,
 	):
-		"""Execute a UAPI function through the WHM 'cpanel' proxy, using only the
+		"""Execute a cPanel function through the WHM 'cpanel' proxy, using only the
 		WHM token (no per-account cPanel token needed).
 
-		NOTE: the exact request/response shape used here is inferred from cPanel's
-		published documentation and has not been verified against a live server.
-		Confirm during the sandbox spike and adjust as needed:
-		https://api.docs.cpanel.net/whm/introduction/calling-uapi-and-api-1-functions-with-whm-api-1/
+		Verified against a live server: UAPI (apiversion 3) returns
+		`{"result": {"data": ..., "errors": ...}}`, API 2 returns
+		`{"cpanelresult": {"data": ..., "error": ...}}`. Both failure shapes are
+		handled by `_extract_error`.
+
+		`apiversion` defaults to UAPI. Pass `API2_VERSION` for the older modules
+		that UAPI does not expose -- addon/parked domains live only in API 2 on
+		current cPanel builds, where `Cpanel::API::AddonDomain` does not exist.
 		"""
 		whm_params = {
 			"cpanel_jsonapi_user": cpanel_username,
-			"cpanel_jsonapi_apiversion": 3,
+			"cpanel_jsonapi_apiversion": apiversion,
 			"cpanel_jsonapi_module": module,
 			"cpanel_jsonapi_func": function_name,
 		}
