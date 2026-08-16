@@ -11,6 +11,13 @@ def execute(filters=None):
 	columns = [
 		{"label": _("Domain"), "fieldname": "domain", "fieldtype": "Data", "width": 220},
 		{
+			"label": _("Customer"),
+			"fieldname": "customer",
+			"fieldtype": "Link",
+			"options": "Customer",
+			"width": 180,
+		},
+		{
 			"label": _("Server"),
 			"fieldname": "server",
 			"fieldtype": "Link",
@@ -33,12 +40,15 @@ def execute(filters=None):
 		query_filters["status"] = filters.get("status")
 	if filters.get("server"):
 		query_filters["server"] = filters.get("server")
+	if filters.get("customer"):
+		query_filters["customer"] = filters.get("customer")
 
 	data = frappe.get_all(
 		"Hosted Domain",
 		filters=query_filters,
 		fields=[
 			"domain_name as domain",
+			"customer",
 			"server",
 			"provisioning_type",
 			"cpanel_username",

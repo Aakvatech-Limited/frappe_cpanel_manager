@@ -19,11 +19,18 @@
    "label": "Server",
    "options": "cPanel Server",
    "reqd": 0
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 0
   }
  ],
  "idx": 0,
  "is_standard": "Yes",
- "modified": "2026-08-15 19:00:00.000000",
+ "modified": "2026-08-16 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Domain Management",
  "name": "Hosted Domains",

@@ -18,7 +18,9 @@ from frappe_cpanel_manager.email_management.utils import normalize_mailbox
 from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAPIError
 
 EXTRA_TEST_RECORD_DEPENDENCIES = []
-IGNORE_TEST_RECORD_DEPENDENCIES = []
+# Hosted Domain links to Customer, so the test runner would otherwise pull in
+# ERPNext's Customer test records (and their own dependencies) for every run.
+IGNORE_TEST_RECORD_DEPENDENCIES = ["Customer"]
 
 
 def make_mock_response(ok, status_code, payload):

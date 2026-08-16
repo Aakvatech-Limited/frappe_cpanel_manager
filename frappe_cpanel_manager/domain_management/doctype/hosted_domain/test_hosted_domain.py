@@ -19,7 +19,9 @@ from frappe_cpanel_manager.domain_management.utils import normalize_domain
 from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAPIError, CPanelDuplicateResourceError
 
 EXTRA_TEST_RECORD_DEPENDENCIES = []
-IGNORE_TEST_RECORD_DEPENDENCIES = []
+# Hosted Domain links to Customer, so the test runner would otherwise pull in
+# ERPNext's Customer test records (and their own dependencies) for every run.
+IGNORE_TEST_RECORD_DEPENDENCIES = ["Customer"]
 
 
 def make_mock_response(ok, status_code, payload):
@@ -309,6 +311,34 @@ class IntegrationTestHostedDomain(IntegrationTestCase):
 			},
 		)
 		self.assertEqual(len(logs), 1)
+
+	def test_customer_is_optional_and_stored_when_set(self):
+		# ERPNext is an optional dependency: a blank customer must always be valid.
+		doc = self.make_domain(domain_name="nocustomer.example.com")
+		self.assertFalse(doc.customer)
+
+		if not frappe.db.exists("DocType", "Customer"):
+			return
+
+		customer = frappe.get_doc(
+			{
+				"doctype": "Customer",
+				"customer_name": f"cPanel Test Customer {frappe.generate_hash(length=6)}",
+			}
+		).insert(ignore_permissions=True)
+		try:
+			linked = self.make_domain(domain_name="withcustomer.example.com", customer=customer.name)
+			linked.reload()
+			self.assertEqual(linked.customer, customer.name)
+		finally:
+			frappe.db.delete("Hosted Domain", {"customer": customer.name})
+			frappe.delete_doc("Customer", customer.name, force=True)
+
+	def test_unknown_customer_is_rejected(self):
+		if not frappe.db.exists("DocType", "Customer"):
+			return
+		with self.assertRaises(frappe.ValidationError):
+			self.make_domain(domain_name="badcustomer.example.com", customer="No Such Customer XYZ")
 
 	def test_suspend_and_unsuspend_account_toggle_status(self):
 		doc = self.make_domain(domain_name="suspendme.example.com")

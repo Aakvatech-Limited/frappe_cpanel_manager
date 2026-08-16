@@ -24,5 +24,11 @@ frappe.query_reports["Hosted Domains"] = {
 			fieldtype: "Link",
 			options: "cPanel Server",
 		},
+		{
+			fieldname: "customer",
+			label: __("Customer"),
+			fieldtype: "Link",
+			options: "Customer",
+		},
 	],
 };

@@ -11,6 +11,13 @@ def execute(filters=None):
 	columns = [
 		{"label": _("Email Address"), "fieldname": "email_address", "fieldtype": "Data", "width": 220},
 		{"label": _("Domain"), "fieldname": "domain", "fieldtype": "Data", "width": 200},
+		{
+			"label": _("Customer"),
+			"fieldname": "customer",
+			"fieldtype": "Link",
+			"options": "Customer",
+			"width": 180,
+		},
 		{"label": _("Quota (MB)"), "fieldname": "quota_mb", "fieldtype": "Int", "width": 110},
 		{"label": _("Status"), "fieldname": "status", "fieldtype": "Data", "width": 110},
 		{"label": _("Last Action On"), "fieldname": "last_action_on", "fieldtype": "Datetime", "width": 170},
@@ -26,6 +33,7 @@ def execute(filters=None):
 		.select(
 			account.email_address,
 			domain.domain_name.as_("domain"),
+			domain.customer,
 			account.quota_mb,
 			account.status,
 			account.last_action_on,
@@ -37,5 +45,7 @@ def execute(filters=None):
 		query = query.where(account.status == filters.get("status"))
 	if filters.get("hosted_domain"):
 		query = query.where(account.hosted_domain == filters.get("hosted_domain"))
+	if filters.get("customer"):
+		query = query.where(domain.customer == filters.get("customer"))
 
 	return columns, query.run(as_dict=True)

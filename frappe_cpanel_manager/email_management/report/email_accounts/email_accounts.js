@@ -15,5 +15,11 @@ frappe.query_reports["Email Accounts"] = {
 			fieldtype: "Link",
 			options: "Hosted Domain",
 		},
+		{
+			fieldname: "customer",
+			label: __("Customer"),
+			fieldtype: "Link",
+			options: "Customer",
+		},
 	],
 };

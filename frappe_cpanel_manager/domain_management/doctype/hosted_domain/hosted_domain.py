@@ -22,7 +22,18 @@ class HostedDomain(Document):
 	def validate(self):
 		self.domain_name = normalize_domain(self.domain_name)
 		self._check_duplicate_on_server()
+		self._validate_customer()
 		self._validate_dns_records()
+
+	def _validate_customer(self):
+		"""The Customer link is optional so this app still works without ERPNext.
+
+		Only the case where a customer is actually set on a site that has no
+		Customer doctype is rejected -- leaving it blank must stay valid, since
+		ERPNext is an optional dependency rather than a requirement.
+		"""
+		if self.customer and not frappe.db.exists("DocType", "Customer"):
+			frappe.throw(_("Customer tracking requires ERPNext, which is not installed on this site."))
 
 	def _check_duplicate_on_server(self):
 		duplicate = frappe.db.exists(
