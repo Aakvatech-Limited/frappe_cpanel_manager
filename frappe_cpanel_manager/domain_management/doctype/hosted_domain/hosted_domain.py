@@ -15,7 +15,11 @@ from frappe_cpanel_manager.domain_management.utils import (
 	normalize_domain,
 )
 from frappe_cpanel_manager.integrations.cpanel.client import CPanelClient, sanitize_params
-from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAPIError, CPanelDuplicateResourceError
+from frappe_cpanel_manager.integrations.cpanel.exceptions import (
+	CPanelAPIError,
+	CPanelDuplicateResourceError,
+	friendly_message,
+)
 
 
 class HostedDomain(Document):
@@ -91,9 +95,10 @@ class HostedDomain(Document):
 				function_name, params, reference_doctype=self.doctype, reference_name=self.name
 			)
 		except CPanelAPIError as e:
+			message = friendly_message(_("provision"), self.domain_name, e)
 			self.db_set("status", "Failed", update_modified=False)
-			self.db_set("error_message", str(e), update_modified=False)
-			frappe.throw(str(e), exc=type(e), title=_("Provisioning Failed"))
+			self.db_set("error_message", message, update_modified=False)
+			frappe.throw(message, exc=type(e), title=_("Provisioning Failed"))
 
 		self.db_set("status", "Active", update_modified=False)
 		self.db_set("last_provisioned_on", now_datetime(), update_modified=False)
@@ -140,7 +145,9 @@ class HostedDomain(Document):
 		params = {"user": self.cpanel_username}
 		if reason:
 			params["reason"] = reason
-		result = self._call_account_whm("suspendacct", params, _("Account Suspension Failed"))
+		result = self._call_account_whm(
+			"suspendacct", params, _("Account Suspension Failed"), action=_("suspend the account for")
+		)
 
 		self.db_set("status", "Suspended", update_modified=False)
 		self.db_set(
@@ -154,7 +161,10 @@ class HostedDomain(Document):
 			frappe.throw(_("Only a Suspended domain's account can be unsuspended."))
 
 		result = self._call_account_whm(
-			"unsuspendacct", {"user": self.cpanel_username}, _("Account Unsuspension Failed")
+			"unsuspendacct",
+			{"user": self.cpanel_username},
+			_("Account Unsuspension Failed"),
+			action=_("unsuspend the account for"),
 		)
 
 		self.db_set("status", "Active", update_modified=False)
@@ -173,7 +183,10 @@ class HostedDomain(Document):
 			frappe.throw(_("Only an Active or Suspended domain's account can be terminated."))
 
 		result = self._call_account_whm(
-			"removeacct", {"user": self.cpanel_username}, _("Account Termination Failed")
+			"removeacct",
+			{"user": self.cpanel_username},
+			_("Account Termination Failed"),
+			action=_("terminate the account for"),
 		)
 
 		self.db_set("status", "Terminated", update_modified=False)
@@ -188,15 +201,17 @@ class HostedDomain(Document):
 				_("{0} is DNS Only and has no cPanel account to be {1}.").format(self.domain_name, action)
 			)
 
-	def _call_account_whm(self, function_name, params, error_title):
+	def _call_account_whm(self, function_name, params, error_title, action=None):
+		action = action or _("update the account for")
 		client = CPanelClient(self.server)
 		try:
 			return client.call_whm(
 				function_name, params, reference_doctype=self.doctype, reference_name=self.name
 			)
 		except CPanelAPIError as e:
-			self.db_set("error_message", str(e), update_modified=False)
-			frappe.throw(str(e), exc=type(e), title=error_title)
+			message = friendly_message(action, self.domain_name, e)
+			self.db_set("error_message", message, update_modified=False)
+			frappe.throw(message, exc=type(e), title=error_title)
 
 	def sync_dns_from_server(self):
 		"""Overwrite the local `dns_records` table with the zone currently on the server."""

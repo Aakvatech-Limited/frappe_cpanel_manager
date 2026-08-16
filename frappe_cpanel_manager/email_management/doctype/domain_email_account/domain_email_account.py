@@ -9,7 +9,7 @@ from frappe.utils.password import remove_encrypted_password
 
 from frappe_cpanel_manager.email_management.utils import normalize_mailbox
 from frappe_cpanel_manager.integrations.cpanel.client import CPanelClient, sanitize_params
-from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAPIError
+from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAPIError, friendly_message
 
 # cPanel's wire value for "no limit" on add_pop/edit_pop_quota. Kept as a named
 # constant so the magic zero appears in exactly one place.
@@ -102,9 +102,10 @@ class DomainEmailAccount(Document):
 				domain=domain,
 			)
 		except CPanelAPIError as e:
+			message = friendly_message(_("create mailbox"), self.email_address, e)
 			self.db_set("status", "Failed", update_modified=False)
-			self.db_set("error_message", str(e), update_modified=False)
-			frappe.throw(str(e), exc=type(e), title=_("Mailbox Creation Failed"))
+			self.db_set("error_message", message, update_modified=False)
+			frappe.throw(message, exc=type(e), title=_("Mailbox Creation Failed"))
 
 		self.db_set("status", "Active", update_modified=False)
 		self.db_set("last_action_on", now_datetime(), update_modified=False)
@@ -130,8 +131,9 @@ class DomainEmailAccount(Document):
 				domain=domain,
 			)
 		except CPanelAPIError as e:
-			self.db_set("error_message", str(e), update_modified=False)
-			frappe.throw(str(e), exc=type(e), title=_("Password Change Failed"))
+			message = friendly_message(_("change the password for"), self.email_address, e)
+			self.db_set("error_message", message, update_modified=False)
+			frappe.throw(message, exc=type(e), title=_("Password Change Failed"))
 
 		self.db_set("last_action_on", now_datetime(), update_modified=False)
 		self.db_set(
@@ -186,8 +188,9 @@ class DomainEmailAccount(Document):
 				"delete_pop", {"email": self.mailbox, "domain": domain.domain_name}, domain=domain
 			)
 		except CPanelAPIError as e:
-			self.db_set("error_message", str(e), update_modified=False)
-			frappe.throw(str(e), exc=type(e), title=_("Mailbox Deletion Failed"))
+			message = friendly_message(_("delete mailbox"), self.email_address, e)
+			self.db_set("error_message", message, update_modified=False)
+			frappe.throw(message, exc=type(e), title=_("Mailbox Deletion Failed"))
 
 		self.db_set("status", "Deleted", update_modified=False)
 		self.db_set("last_action_on", now_datetime(), update_modified=False)
@@ -203,8 +206,9 @@ class DomainEmailAccount(Document):
 				function_name, {"email": self.mailbox, "domain": domain.domain_name}, domain=domain
 			)
 		except CPanelAPIError as e:
-			self.db_set("error_message", str(e), update_modified=False)
-			frappe.throw(str(e), exc=type(e), title=_("Mailbox Update Failed"))
+			message = friendly_message(_("update mailbox"), self.email_address, e)
+			self.db_set("error_message", message, update_modified=False)
+			frappe.throw(message, exc=type(e), title=_("Mailbox Update Failed"))
 
 		self.db_set("status", new_status, update_modified=False)
 		self.db_set("last_action_on", now_datetime(), update_modified=False)
