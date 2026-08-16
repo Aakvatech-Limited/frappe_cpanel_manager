@@ -13,6 +13,7 @@ from frappe_cpanel_manager.integrations.cpanel.exceptions import (
 	CPanelAuthenticationError,
 	CPanelTimeoutError,
 	error_category,
+	friendly_message,
 )
 
 EXTRA_TEST_RECORD_DEPENDENCIES = []
@@ -92,6 +93,36 @@ class IntegrationTestcPanelServer(IntegrationTestCase):
 		self.assertEqual(log.status, "Failed")
 		self.assertIn("Invalid Login Attempt", log.error_message)
 		self.assertNotIn("top-secret-token", log.sanitized_request)
+
+	def test_fetch_server_information_reads_only(self):
+		from frappe_cpanel_manager.api.server import fetch_server_information
+
+		success = make_mock_response(
+			True,
+			200,
+			{"metadata": {"result": 1}, "data": {"version": "11.128", "hostname": "h", "one": "0.4"}},
+		)
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=success):
+			info = fetch_server_information(self.server.name)
+
+		self.assertEqual(info["version"], "11.128")
+		self.assertEqual(info["hostname"], "h")
+		self.assertEqual(info["load_average"], "0.4")
+
+	def test_fetch_server_information_degrades_per_lookup(self):
+		"""A token missing one privilege must not blank out the whole panel."""
+		from frappe_cpanel_manager.api.server import fetch_server_information
+
+		ok = make_mock_response(True, 200, {"metadata": {"result": 1}, "data": {"version": "11.128"}})
+		denied = make_mock_response(False, 403, {"metadata": {"result": 0, "reason": "Access denied"}})
+		with patch(
+			"frappe_cpanel_manager.integrations.cpanel.client.requests.get",
+			side_effect=[ok, denied, denied],
+		):
+			info = fetch_server_information(self.server.name)
+
+		self.assertEqual(info["version"], "11.128")
+		self.assertIn("Unavailable", info["hostname"])
 
 
 class UnitTestCPanelClientHelpers(UnitTestCase):
@@ -250,3 +281,26 @@ class UnitTestCPanelClientHelpers(UnitTestCase):
 		)
 		with self.assertRaises(CPanelAPIError):
 			client._check_response(response)
+
+
+class UnitTestFriendlyMessages(UnitTestCase):
+	def test_existing_resource_error_is_rephrased(self):
+		msg = friendly_message(
+			"create mailbox", "sales@example.com", CPanelAPIError("Mailbox already exists")
+		)
+		self.assertIn("sales@example.com already exists on the server", msg)
+		self.assertTrue(msg.startswith("Unable to create mailbox sales@example.com"))
+
+	def test_credentials_error_is_rephrased(self):
+		msg = friendly_message("provision", "example.com", CPanelAPIError("Invalid login attempt"))
+		self.assertIn("rejected the API credentials", msg)
+
+	def test_unmatched_reason_is_preserved_verbatim(self):
+		# Never reword a failure into something less accurate than the server said.
+		msg = friendly_message("provision", "example.com", CPanelAPIError("Weird backend explosion 42"))
+		self.assertIn("Weird backend explosion 42", msg)
+
+	def test_empty_reason_still_names_the_target(self):
+		msg = friendly_message("provision", "example.com", CPanelAPIError(""))
+		self.assertIn("example.com", msg)
+		self.assertIn("did not explain why", msg)
