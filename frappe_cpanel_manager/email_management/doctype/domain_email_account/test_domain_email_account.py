@@ -182,6 +182,38 @@ class IntegrationTestDomainEmailAccount(IntegrationTestCase):
 		doc.reload()
 		self.assertEqual(doc.quota_mb, 500)
 
+	def test_unlimited_quota_zeroes_the_number(self):
+		doc = self.make_account(mailbox="unlimitedbox", unlimited_quota=1, quota_mb=800)
+		self.assertEqual(doc.quota_mb, 0)
+		self.assertTrue(doc.unlimited_quota)
+
+	def test_zero_quota_without_unlimited_flag_is_rejected(self):
+		# cPanel reports unlimited as "unlimited", so 0 must not silently mean it.
+		with self.assertRaises(frappe.ValidationError):
+			self.make_account(mailbox="zeroquota", quota_mb=0)
+
+	def test_edit_quota_can_switch_to_unlimited(self):
+		doc = self.make_account(mailbox="switchunlimited", quota_mb=500)
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):
+			create_mailbox(doc.name)
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):
+			edit_quota(doc.name, 0, unlimited=1)
+
+		doc.reload()
+		self.assertTrue(doc.unlimited_quota)
+		self.assertEqual(doc.quota_mb, 0)
+
+	def test_edit_quota_can_switch_back_to_a_limit(self):
+		doc = self.make_account(mailbox="backtolimit", unlimited_quota=1)
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):
+			create_mailbox(doc.name)
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):
+			edit_quota(doc.name, 300, unlimited=0)
+
+		doc.reload()
+		self.assertFalse(doc.unlimited_quota)
+		self.assertEqual(doc.quota_mb, 300)
+
 	def test_suspend_and_unsuspend_toggle_status(self):
 		doc = self.make_account(mailbox="suspendme")
 		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):

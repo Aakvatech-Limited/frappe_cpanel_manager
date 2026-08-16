@@ -4,12 +4,16 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import now_datetime
+from frappe.utils import cint, now_datetime
 from frappe.utils.password import remove_encrypted_password
 
 from frappe_cpanel_manager.email_management.utils import normalize_mailbox
 from frappe_cpanel_manager.integrations.cpanel.client import CPanelClient, sanitize_params
 from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAPIError
+
+# cPanel's wire value for "no limit" on add_pop/edit_pop_quota. Kept as a named
+# constant so the magic zero appears in exactly one place.
+UNLIMITED_QUOTA = 0
 
 
 class DomainEmailAccount(Document):
@@ -27,7 +31,24 @@ class DomainEmailAccount(Document):
 			)
 
 		self.email_address = f"{self.mailbox}@{domain.domain_name}"
+		self._normalise_quota()
 		self._check_duplicate_on_domain()
+
+	def _normalise_quota(self):
+		"""Keep the unlimited flag and the number from contradicting each other.
+
+		cPanel reports an unlimited mailbox as the string "unlimited" rather than
+		0, so the intent is stored as its own flag instead of being inferred from
+		a magic number, per the README. `quota_mb` is zeroed when unlimited so a
+		stale figure can't be mistaken for a real limit.
+		"""
+		if self.unlimited_quota:
+			self.quota_mb = 0
+		elif cint(self.quota_mb) <= 0:
+			frappe.throw(_("Set a quota in MB, or tick Unlimited Quota."))
+
+	def _quota_param(self):
+		return UNLIMITED_QUOTA if self.unlimited_quota else cint(self.quota_mb)
 
 	def _check_duplicate_on_domain(self):
 		duplicate = frappe.db.exists(
@@ -76,7 +97,7 @@ class DomainEmailAccount(Document):
 					"email": self.mailbox,
 					"domain": domain.domain_name,
 					"password": password,
-					"quota": self.quota_mb or 0,
+					"quota": self._quota_param(),
 				},
 				domain=domain,
 			)
@@ -118,7 +139,7 @@ class DomainEmailAccount(Document):
 		)
 		self.db_set("error_message", "", update_modified=False)
 
-	def edit_quota(self, quota_mb):
+	def edit_quota(self, quota_mb, unlimited=False):
 		if self.status not in ("Active", "Suspended"):
 			frappe.throw(_("The mailbox must exist on the server before its quota can be changed."))
 
@@ -126,14 +147,19 @@ class DomainEmailAccount(Document):
 		try:
 			result = self._call_email_uapi(
 				"edit_pop_quota",
-				{"email": self.mailbox, "domain": domain.domain_name, "quota": quota_mb or 0},
+				{
+					"email": self.mailbox,
+					"domain": domain.domain_name,
+					"quota": UNLIMITED_QUOTA if unlimited else cint(quota_mb),
+				},
 				domain=domain,
 			)
 		except CPanelAPIError as e:
 			self.db_set("error_message", str(e), update_modified=False)
 			frappe.throw(str(e), exc=type(e), title=_("Quota Change Failed"))
 
-		self.db_set("quota_mb", quota_mb or 0, update_modified=False)
+		self.db_set("unlimited_quota", 1 if unlimited else 0, update_modified=False)
+		self.db_set("quota_mb", 0 if unlimited else cint(quota_mb), update_modified=False)
 		self.db_set("last_action_on", now_datetime(), update_modified=False)
 		self.db_set(
 			"last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False

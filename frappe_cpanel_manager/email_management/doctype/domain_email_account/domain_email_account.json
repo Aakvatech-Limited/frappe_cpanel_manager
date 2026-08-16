@@ -11,6 +11,7 @@
   "mailbox",
   "email_address",
   "column_break_top",
+  "unlimited_quota",
   "quota_mb",
   "status",
   "section_break_password",
@@ -50,11 +51,19 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "0",
+   "fieldname": "unlimited_quota",
+   "fieldtype": "Check",
+   "label": "Unlimited Quota",
+   "description": "cPanel reports an unlimited mailbox as \"unlimited\", not 0, so intent is stored explicitly rather than inferred from the number."
+  },
+  {
    "default": "250",
    "description": "0 means unlimited quota.",
    "fieldname": "quota_mb",
    "fieldtype": "Int",
-   "label": "Mailbox Quota (MB)"
+   "label": "Quota (MB)",
+   "depends_on": "eval:!doc.unlimited_quota"
   },
   {
    "default": "Draft",
@@ -108,7 +117,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-15 00:00:00.000000",
+ "modified": "2026-08-16 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "Email Management",
  "name": "Domain Email Account",

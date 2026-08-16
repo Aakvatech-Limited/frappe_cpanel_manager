@@ -118,17 +118,29 @@ frappe.ui.form.on("Domain Email Account", {
 
 			frm.add_custom_button(__("Edit Quota"), () => {
 				frappe.prompt(
-					{
-						fieldname: "quota_mb",
-						fieldtype: "Int",
-						label: __("Quota (MB, 0 = unlimited)"),
-						default: frm.doc.quota_mb,
-						reqd: 1,
-					},
+					[
+						{
+							fieldname: "unlimited",
+							fieldtype: "Check",
+							label: __("Unlimited Quota"),
+							default: frm.doc.unlimited_quota,
+						},
+						{
+							fieldname: "quota_mb",
+							fieldtype: "Int",
+							label: __("Quota (MB)"),
+							default: frm.doc.quota_mb,
+							depends_on: "eval:!doc.unlimited",
+						},
+					],
 					(values) => {
 						frappe.call({
 							method: "frappe_cpanel_manager.api.email.edit_quota",
-							args: { name: frm.doc.name, quota_mb: values.quota_mb },
+							args: {
+								name: frm.doc.name,
+								quota_mb: values.quota_mb,
+								unlimited: values.unlimited ? 1 : 0,
+							},
 							freeze: true,
 							freeze_message: __("Updating quota..."),
 							callback: () => frm.reload_doc(),

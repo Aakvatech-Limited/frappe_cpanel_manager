@@ -18,7 +18,7 @@ def execute(filters=None):
 			"options": "Customer",
 			"width": 180,
 		},
-		{"label": _("Quota (MB)"), "fieldname": "quota_mb", "fieldtype": "Int", "width": 110},
+		{"label": _("Quota"), "fieldname": "quota", "fieldtype": "Data", "width": 110},
 		{"label": _("Status"), "fieldname": "status", "fieldtype": "Data", "width": 110},
 		{"label": _("Last Action On"), "fieldname": "last_action_on", "fieldtype": "Datetime", "width": 170},
 	]
@@ -35,6 +35,7 @@ def execute(filters=None):
 			domain.domain_name.as_("domain"),
 			domain.customer,
 			account.quota_mb,
+			account.unlimited_quota,
 			account.status,
 			account.last_action_on,
 		)
@@ -48,4 +49,9 @@ def execute(filters=None):
 	if filters.get("customer"):
 		query = query.where(domain.customer == filters.get("customer"))
 
-	return columns, query.run(as_dict=True)
+	data = query.run(as_dict=True)
+	for row in data:
+		# "0" would read as a zero-byte mailbox rather than "no limit".
+		row["quota"] = _("Unlimited") if row.pop("unlimited_quota", 0) else str(row.pop("quota_mb", 0))
+
+	return columns, data

@@ -34,11 +34,11 @@ def change_password(name: str, new_password: str):
 
 
 @frappe.whitelist()
-def edit_quota(name: str, quota_mb: int):
+def edit_quota(name: str, quota_mb: int = 0, unlimited: int = 0):
 	frappe.has_permission("Domain Email Account", "write", throw=True)
 	doc = frappe.get_doc("Domain Email Account", name)
-	doc.edit_quota(frappe.utils.cint(quota_mb))
-	return {"quota_mb": doc.quota_mb}
+	doc.edit_quota(frappe.utils.cint(quota_mb), unlimited=bool(frappe.utils.cint(unlimited)))
+	return {"quota_mb": doc.quota_mb, "unlimited_quota": doc.unlimited_quota}
 
 
 @frappe.whitelist()
