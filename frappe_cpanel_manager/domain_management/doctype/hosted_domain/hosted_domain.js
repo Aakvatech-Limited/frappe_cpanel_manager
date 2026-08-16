@@ -12,6 +12,32 @@ frappe.ui.form.on("Hosted Domain", {
 		}
 
 		if (["Draft", "Failed"].includes(frm.doc.status)) {
+			if (frm.doc.provisioning_type === "New cPanel Account") {
+				frm.add_custom_button(__("Generate Password"), () => {
+					frappe.call({
+						method: "frappe_cpanel_manager.api.domain.generate_cpanel_password",
+						args: { name: frm.doc.name },
+						callback: (r) => {
+							if (!r.message) {
+								return;
+							}
+							frm.set_value("initial_cpanel_password", r.message.password);
+							frappe.msgprint({
+								title: __("Generated Password"),
+								indicator: "green",
+								message:
+									__(
+										"Copy this password now -- it is cleared from the document once provisioning succeeds."
+									) +
+									`<pre class="mt-3" style="user-select: all; padding: 8px;">${frappe.utils.escape_html(
+										r.message.password
+									)}</pre>`,
+							});
+						},
+					});
+				});
+			}
+
 			frm.add_custom_button(__("Provision"), () => {
 				frappe.call({
 					method: "frappe_cpanel_manager.api.domain.provision_domain",

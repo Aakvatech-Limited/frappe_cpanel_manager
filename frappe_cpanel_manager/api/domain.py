@@ -1,5 +1,15 @@
 import frappe
 
+from frappe_cpanel_manager.password_utils import generate_password
+
+
+@frappe.whitelist()
+def generate_cpanel_password(name: str):
+	"""Generate an initial cPanel account password without storing or applying it."""
+	frappe.has_permission("Hosted Domain", "write", throw=True)
+	doc = frappe.get_doc("Hosted Domain", name)
+	return {"password": generate_password(exclude_terms=[doc.cpanel_username, doc.domain_name])}
+
 
 @frappe.whitelist()
 def provision_domain(name: str):

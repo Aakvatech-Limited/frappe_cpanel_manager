@@ -1,5 +1,21 @@
 import frappe
 
+from frappe_cpanel_manager.password_utils import generate_password
+
+
+@frappe.whitelist()
+def generate_mailbox_password(name: str):
+	"""Generate a password for this mailbox without storing or applying it.
+
+	Returned to the caller so the operator can copy it once; nothing is written
+	to the document and no cPanel call (and therefore no integration log entry)
+	happens here.
+	"""
+	frappe.has_permission("Domain Email Account", "write", throw=True)
+	doc = frappe.get_doc("Domain Email Account", name)
+	domain_name = frappe.db.get_value("Hosted Domain", doc.hosted_domain, "domain_name")
+	return {"password": generate_password(exclude_terms=[doc.mailbox, domain_name])}
+
 
 @frappe.whitelist()
 def create_mailbox(name: str):
