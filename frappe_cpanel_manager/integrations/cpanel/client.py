@@ -1,7 +1,7 @@
 import frappe
 import requests
 from frappe import _
-from frappe.utils import now_datetime
+from frappe.utils import cint, now_datetime
 
 from frappe_cpanel_manager.integrations.cpanel.exceptions import (
 	CPanelAPIError,
@@ -11,6 +11,7 @@ from frappe_cpanel_manager.integrations.cpanel.exceptions import (
 	CPanelSSLError,
 	CPanelTimeoutError,
 	CPanelUnknownResponseError,
+	error_category,
 )
 
 SANITIZE_KEYS = {"password", "pass", "token", "whm_api_token", "new_password", "cpanel_token"}
@@ -136,6 +137,25 @@ class CPanelClient:
 		except requests.exceptions.ConnectionError as e:
 			raise CPanelNetworkError(f"Unable to reach {self.hostname}.") from e
 
+	def _describe_call(self, function_name, params):
+		"""Return the (operation, api_layer) actually worth recording in the log.
+
+		WHM's "cpanel" proxy carries the real target inside the query params, so
+		logging the WHM function name alone records every mailbox, DNS and addon
+		action as a featureless "cpanel" -- a password change and a mailbox
+		deletion become indistinguishable in the audit trail.
+		"""
+		params = params or {}
+		if function_name != "cpanel":
+			return function_name, "WHM API 1"
+
+		module = params.get("cpanel_jsonapi_module")
+		function = params.get("cpanel_jsonapi_func")
+		apiversion = cint(params.get("cpanel_jsonapi_apiversion")) or UAPI_VERSION
+		api_layer = "cPanel API 2" if apiversion == API2_VERSION else "cPanel UAPI"
+		operation = f"{module}::{function}" if module and function else function_name
+		return operation, api_layer
+
 	def _log(
 		self,
 		api_layer,
@@ -167,6 +187,9 @@ class CPanelClient:
 					"sanitized_request": frappe.as_json(sanitize_params(params), indent=2),
 					"sanitized_response": sanitized_response,
 					"error_message": str(error) if error else None,
+					"error_category": error_category(error),
+					# Set by run_with_retry; 0 means this was the first attempt.
+					"retry_count": cint(frappe.flags.get("cpanel_retry_attempt")),
 					"reference_doctype": reference_doctype,
 					"reference_name": reference_name,
 				}
@@ -183,14 +206,16 @@ class CPanelClient:
 		query = {"api.version": 1}
 		query.update(params or {})
 
+		operation, api_layer = self._describe_call(function_name, query)
+
 		response = None
 		try:
 			response = self._request(url, headers, query, "GET")
 			result = self._check_response(response)
 		except CPanelAPIError as e:
 			self._log(
-				"WHM API 1",
-				function_name,
+				api_layer,
+				operation,
 				query,
 				response=response,
 				error=e,
@@ -200,8 +225,8 @@ class CPanelClient:
 			raise
 
 		self._log(
-			"WHM API 1",
-			function_name,
+			api_layer,
+			operation,
 			query,
 			response=response,
 			reference_doctype=reference_doctype,

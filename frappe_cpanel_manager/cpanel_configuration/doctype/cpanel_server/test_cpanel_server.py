@@ -11,6 +11,8 @@ from frappe_cpanel_manager.integrations.cpanel.client import CPanelClient, sanit
 from frappe_cpanel_manager.integrations.cpanel.exceptions import (
 	CPanelAPIError,
 	CPanelAuthenticationError,
+	CPanelTimeoutError,
+	error_category,
 )
 
 EXTRA_TEST_RECORD_DEPENDENCIES = []
@@ -190,6 +192,53 @@ class UnitTestCPanelClientHelpers(UnitTestCase):
 			}
 		)
 		self.assertIsNone(error)
+
+	def test_describe_call_uses_whm_function_name_directly(self):
+		client = CPanelClient.__new__(CPanelClient)
+		self.assertEqual(client._describe_call("createacct", {"user": "bob"}), ("createacct", "WHM API 1"))
+
+	def test_describe_call_unwraps_proxied_uapi_function(self):
+		"""Proxied calls used to all log as a featureless "cpanel"."""
+		client = CPanelClient.__new__(CPanelClient)
+		operation, layer = client._describe_call(
+			"cpanel",
+			{
+				"cpanel_jsonapi_apiversion": 3,
+				"cpanel_jsonapi_module": "Email",
+				"cpanel_jsonapi_func": "passwd_pop",
+			},
+		)
+		self.assertEqual(operation, "Email::passwd_pop")
+		self.assertEqual(layer, "cPanel UAPI")
+
+	def test_describe_call_flags_api2_layer(self):
+		client = CPanelClient.__new__(CPanelClient)
+		operation, layer = client._describe_call(
+			"cpanel",
+			{
+				"cpanel_jsonapi_apiversion": 2,
+				"cpanel_jsonapi_module": "Park",
+				"cpanel_jsonapi_func": "addaddondomain",
+			},
+		)
+		self.assertEqual(operation, "Park::addaddondomain")
+		self.assertEqual(layer, "cPanel API 2")
+
+	def test_describe_call_falls_back_when_proxy_params_missing(self):
+		client = CPanelClient.__new__(CPanelClient)
+		self.assertEqual(client._describe_call("cpanel", {}), ("cpanel", "cPanel UAPI"))
+
+	def test_error_category_classifies_known_exceptions(self):
+		self.assertEqual(error_category(CPanelTimeoutError("t")), "Timeout")
+		self.assertEqual(error_category(CPanelAuthenticationError("a")), "Authentication Error")
+		self.assertEqual(error_category(CPanelAPIError("x")), "cPanel API Error")
+		self.assertIsNone(error_category(None))
+
+	def test_error_category_walks_mro_for_unknown_subclass(self):
+		class NewTransientError(CPanelTimeoutError):
+			pass
+
+		self.assertEqual(error_category(NewTransientError("t")), "Timeout")
 
 	def test_api2_failure_raises_instead_of_returning_silently(self):
 		"""The regression this fix exists for: a failed API 2 call must raise."""
