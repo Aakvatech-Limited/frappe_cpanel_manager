@@ -4,12 +4,16 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import now_datetime
+from frappe.utils import cint, now_datetime
 from frappe.utils.password import remove_encrypted_password
 
 from frappe_cpanel_manager.email_management.utils import normalize_mailbox
 from frappe_cpanel_manager.integrations.cpanel.client import CPanelClient, sanitize_params
-from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAPIError
+from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAPIError, friendly_message
+
+# cPanel's wire value for "no limit" on add_pop/edit_pop_quota. Kept as a named
+# constant so the magic zero appears in exactly one place.
+UNLIMITED_QUOTA = 0
 
 
 class DomainEmailAccount(Document):
@@ -22,10 +26,29 @@ class DomainEmailAccount(Document):
 				_("{0} is DNS Only and has no cPanel account to hold mailboxes.").format(domain.domain_name)
 			)
 		if domain.status != "Active":
-			frappe.throw(_("{0} must be provisioned (Active) before adding email accounts.").format(domain.domain_name))
+			frappe.throw(
+				_("{0} must be provisioned (Active) before adding email accounts.").format(domain.domain_name)
+			)
 
 		self.email_address = f"{self.mailbox}@{domain.domain_name}"
+		self._normalise_quota()
 		self._check_duplicate_on_domain()
+
+	def _normalise_quota(self):
+		"""Keep the unlimited flag and the number from contradicting each other.
+
+		cPanel reports an unlimited mailbox as the string "unlimited" rather than
+		0, so the intent is stored as its own flag instead of being inferred from
+		a magic number, per the README. `quota_mb` is zeroed when unlimited so a
+		stale figure can't be mistaken for a real limit.
+		"""
+		if self.unlimited_quota:
+			self.quota_mb = 0
+		elif cint(self.quota_mb) <= 0:
+			frappe.throw(_("Set a quota in MB, or tick Unlimited Quota."))
+
+	def _quota_param(self):
+		return UNLIMITED_QUOTA if self.unlimited_quota else cint(self.quota_mb)
 
 	def _check_duplicate_on_domain(self):
 		duplicate = frappe.db.exists(
@@ -70,17 +93,25 @@ class DomainEmailAccount(Document):
 		try:
 			result = self._call_email_uapi(
 				"add_pop",
-				{"email": self.mailbox, "domain": domain.domain_name, "password": password, "quota": self.quota_mb or 0},
+				{
+					"email": self.mailbox,
+					"domain": domain.domain_name,
+					"password": password,
+					"quota": self._quota_param(),
+				},
 				domain=domain,
 			)
 		except CPanelAPIError as e:
+			message = friendly_message(_("create mailbox"), self.email_address, e)
 			self.db_set("status", "Failed", update_modified=False)
-			self.db_set("error_message", str(e), update_modified=False)
-			frappe.throw(str(e), exc=type(e), title=_("Mailbox Creation Failed"))
+			self.db_set("error_message", message, update_modified=False)
+			frappe.throw(message, exc=type(e), title=_("Mailbox Creation Failed"))
 
 		self.db_set("status", "Active", update_modified=False)
 		self.db_set("last_action_on", now_datetime(), update_modified=False)
-		self.db_set("last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False)
+		self.db_set(
+			"last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False
+		)
 		self.db_set("error_message", "", update_modified=False)
 		if self.get_password("initial_password", raise_exception=False):
 			remove_encrypted_password(self.doctype, self.name, "initial_password")
@@ -95,32 +126,46 @@ class DomainEmailAccount(Document):
 		domain = self._get_hosted_domain()
 		try:
 			result = self._call_email_uapi(
-				"passwd_pop", {"email": self.mailbox, "domain": domain.domain_name, "password": new_password}, domain=domain
+				"passwd_pop",
+				{"email": self.mailbox, "domain": domain.domain_name, "password": new_password},
+				domain=domain,
 			)
 		except CPanelAPIError as e:
-			self.db_set("error_message", str(e), update_modified=False)
-			frappe.throw(str(e), exc=type(e), title=_("Password Change Failed"))
+			message = friendly_message(_("change the password for"), self.email_address, e)
+			self.db_set("error_message", message, update_modified=False)
+			frappe.throw(message, exc=type(e), title=_("Password Change Failed"))
 
 		self.db_set("last_action_on", now_datetime(), update_modified=False)
-		self.db_set("last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False)
+		self.db_set(
+			"last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False
+		)
 		self.db_set("error_message", "", update_modified=False)
 
-	def edit_quota(self, quota_mb):
+	def edit_quota(self, quota_mb, unlimited=False):
 		if self.status not in ("Active", "Suspended"):
 			frappe.throw(_("The mailbox must exist on the server before its quota can be changed."))
 
 		domain = self._get_hosted_domain()
 		try:
 			result = self._call_email_uapi(
-				"edit_pop_quota", {"email": self.mailbox, "domain": domain.domain_name, "quota": quota_mb or 0}, domain=domain
+				"edit_pop_quota",
+				{
+					"email": self.mailbox,
+					"domain": domain.domain_name,
+					"quota": UNLIMITED_QUOTA if unlimited else cint(quota_mb),
+				},
+				domain=domain,
 			)
 		except CPanelAPIError as e:
 			self.db_set("error_message", str(e), update_modified=False)
 			frappe.throw(str(e), exc=type(e), title=_("Quota Change Failed"))
 
-		self.db_set("quota_mb", quota_mb or 0, update_modified=False)
+		self.db_set("unlimited_quota", 1 if unlimited else 0, update_modified=False)
+		self.db_set("quota_mb", 0 if unlimited else cint(quota_mb), update_modified=False)
 		self.db_set("last_action_on", now_datetime(), update_modified=False)
-		self.db_set("last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False)
+		self.db_set(
+			"last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False
+		)
 		self.db_set("error_message", "", update_modified=False)
 
 	def suspend(self):
@@ -133,15 +178,41 @@ class DomainEmailAccount(Document):
 			frappe.throw(_("Only a suspended mailbox can be unsuspended."))
 		self._set_suspension("unsuspend_login", "Active")
 
+	def delete_mailbox(self):
+		if self.status not in ("Active", "Suspended"):
+			frappe.throw(_("Only an existing mailbox (Active or Suspended) can be deleted."))
+
+		domain = self._get_hosted_domain()
+		try:
+			result = self._call_email_uapi(
+				"delete_pop", {"email": self.mailbox, "domain": domain.domain_name}, domain=domain
+			)
+		except CPanelAPIError as e:
+			message = friendly_message(_("delete mailbox"), self.email_address, e)
+			self.db_set("error_message", message, update_modified=False)
+			frappe.throw(message, exc=type(e), title=_("Mailbox Deletion Failed"))
+
+		self.db_set("status", "Deleted", update_modified=False)
+		self.db_set("last_action_on", now_datetime(), update_modified=False)
+		self.db_set(
+			"last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False
+		)
+		self.db_set("error_message", "", update_modified=False)
+
 	def _set_suspension(self, function_name, new_status):
 		domain = self._get_hosted_domain()
 		try:
-			result = self._call_email_uapi(function_name, {"email": self.mailbox, "domain": domain.domain_name}, domain=domain)
+			result = self._call_email_uapi(
+				function_name, {"email": self.mailbox, "domain": domain.domain_name}, domain=domain
+			)
 		except CPanelAPIError as e:
-			self.db_set("error_message", str(e), update_modified=False)
-			frappe.throw(str(e), exc=type(e), title=_("Mailbox Update Failed"))
+			message = friendly_message(_("update mailbox"), self.email_address, e)
+			self.db_set("error_message", message, update_modified=False)
+			frappe.throw(message, exc=type(e), title=_("Mailbox Update Failed"))
 
 		self.db_set("status", new_status, update_modified=False)
 		self.db_set("last_action_on", now_datetime(), update_modified=False)
-		self.db_set("last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False)
+		self.db_set(
+			"last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False
+		)
 		self.db_set("error_message", "", update_modified=False)

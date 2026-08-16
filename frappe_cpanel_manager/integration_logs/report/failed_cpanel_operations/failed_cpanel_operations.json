@@ -1,0 +1,51 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2026-08-15 00:00:00.000000",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [
+  {
+   "fieldname": "server",
+   "fieldtype": "Link",
+   "label": "Server",
+   "options": "cPanel Server",
+   "reqd": 0
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date",
+   "reqd": 0
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date",
+   "reqd": 0
+  }
+ ],
+ "idx": 0,
+ "is_standard": "Yes",
+ "modified": "2026-08-16 13:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Integration Logs",
+ "name": "Failed cPanel Operations",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "cPanel Integration Log",
+ "report_name": "Failed cPanel Operations",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "cPanel Manager Administrator"
+  },
+  {
+   "role": "cPanel Manager Auditor"
+  }
+ ]
+}

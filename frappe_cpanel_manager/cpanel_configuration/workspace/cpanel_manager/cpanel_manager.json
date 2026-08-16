@@ -1,7 +1,24 @@
 {
  "app": "frappe_cpanel_manager",
- "charts": [],
- "content": "[\n {\n  \"data\": {\n   \"col\": 12,\n   \"text\": \"<span class=\\\"h4\\\"><b>cPanel Hosting Management</b></span>\"\n  },\n  \"id\": \"cpm-header\",\n  \"type\": \"header\"\n },\n {\n  \"data\": {\n   \"card_name\": \"cPanel Configuration\",\n   \"col\": 4\n  },\n  \"id\": \"cpm-card-config\",\n  \"type\": \"card\"\n },\n {\n  \"data\": {\n   \"card_name\": \"Integration Logs\",\n   \"col\": 4\n  },\n  \"id\": \"cpm-card-logs\",\n  \"type\": \"card\"\n }\n]",
+ "charts": [
+  {
+   "chart_name": "cPanel API Activity",
+   "label": "cPanel API Activity"
+  },
+  {
+   "chart_name": "Hosted Domains by Status",
+   "label": "Hosted Domains by Status"
+  },
+  {
+   "chart_name": "Email Accounts by Status",
+   "label": "Email Accounts by Status"
+  },
+  {
+   "chart_name": "Hosted Domains by Server",
+   "label": "Hosted Domains by Server"
+  }
+ ],
+ "content": "[{\"id\": \"cpm-header\", \"type\": \"header\", \"data\": {\"col\": 12, \"text\": \"<span class=\\\"h4\\\"><b>cPanel Hosting Management</b></span>\"}}, {\"id\": \"cpm-nc-0\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Active Hosted Domains\", \"col\": 4}}, {\"id\": \"cpm-nc-1\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Pending Provisioning\", \"col\": 4}}, {\"id\": \"cpm-nc-2\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Failed Provisioning\", \"col\": 4}}, {\"id\": \"cpm-nc-3\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Suspended Domains\", \"col\": 4}}, {\"id\": \"cpm-nc-4\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Active Email Accounts\", \"col\": 4}}, {\"id\": \"cpm-nc-5\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Failed API Calls\", \"col\": 4}}, {\"id\": \"cpm-spacer-1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"cpm-chart-0\", \"type\": \"chart\", \"data\": {\"chart_name\": \"cPanel API Activity\", \"col\": 12}}, {\"id\": \"cpm-chart-1\", \"type\": \"chart\", \"data\": {\"chart_name\": \"Hosted Domains by Status\", \"col\": 6}}, {\"id\": \"cpm-chart-2\", \"type\": \"chart\", \"data\": {\"chart_name\": \"Email Accounts by Status\", \"col\": 6}}, {\"id\": \"cpm-chart-3\", \"type\": \"chart\", \"data\": {\"chart_name\": \"Hosted Domains by Server\", \"col\": 12}}, {\"id\": \"cpm-spacer-2\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"cpm-card-config\", \"type\": \"card\", \"data\": {\"card_name\": \"cPanel Configuration\", \"col\": 4}}, {\"id\": \"cpm-card-logs\", \"type\": \"card\", \"data\": {\"card_name\": \"Integration Logs\", \"col\": 4}}, {\"id\": \"cpm-card-reports\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}]",
  "creation": "2026-08-06 09:46:34.736024",
  "custom_blocks": [],
  "docstatus": 0,
@@ -61,13 +78,87 @@
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Reports",
+   "link_count": 0,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Hosted Domains",
+   "link_count": 0,
+   "link_to": "Hosted Domains",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "DNS Records",
+   "link_count": 0,
+   "link_to": "DNS Records",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Email Accounts",
+   "link_count": 0,
+   "link_to": "Email Accounts",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Failed cPanel Operations",
+   "link_count": 0,
+   "link_to": "Failed cPanel Operations",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-08-06 09:46:34.736024",
+ "modified": "2026-08-15 19:45:00.000000",
  "modified_by": "Administrator",
  "module": "cPanel Configuration",
  "name": "cPanel Manager",
- "number_cards": [],
+ "number_cards": [
+  {
+   "number_card_name": "Active Hosted Domains",
+   "label": "Active Hosted Domains"
+  },
+  {
+   "number_card_name": "Pending Provisioning",
+   "label": "Pending Provisioning"
+  },
+  {
+   "number_card_name": "Failed Provisioning",
+   "label": "Failed Provisioning"
+  },
+  {
+   "number_card_name": "Suspended Domains",
+   "label": "Suspended Domains"
+  },
+  {
+   "number_card_name": "Active Email Accounts",
+   "label": "Active Email Accounts"
+  },
+  {
+   "number_card_name": "Failed API Calls",
+   "label": "Failed API Calls"
+  }
+ ],
  "owner": "Administrator",
  "public": 1,
  "quick_lists": [],

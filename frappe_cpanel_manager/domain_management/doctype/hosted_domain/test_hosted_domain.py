@@ -10,13 +10,18 @@ from frappe_cpanel_manager.api.domain import (
 	apply_dns_changes,
 	provision_domain,
 	remove_dns_record,
+	suspend_domain,
 	sync_dns_from_server,
+	terminate_domain,
+	unsuspend_domain,
 )
 from frappe_cpanel_manager.domain_management.utils import normalize_domain
 from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAPIError, CPanelDuplicateResourceError
 
 EXTRA_TEST_RECORD_DEPENDENCIES = []
-IGNORE_TEST_RECORD_DEPENDENCIES = []
+# Hosted Domain links to Customer, so the test runner would otherwise pull in
+# ERPNext's Customer test records (and their own dependencies) for every run.
+IGNORE_TEST_RECORD_DEPENDENCIES = ["Customer"]
 
 
 def make_mock_response(ok, status_code, payload):
@@ -196,6 +201,15 @@ class IntegrationTestHostedDomain(IntegrationTestCase):
 									"preference": "10",
 									"ttl": "14400",
 								},
+								{
+									"Line": "8",
+									"type": "CAA",
+									"name": "syncme.example.com.",
+									"flag": "0",
+									"tag": "issue",
+									"value": "letsencrypt.org",
+									"ttl": "14400",
+								},
 							]
 						}
 					]
@@ -211,13 +225,17 @@ class IntegrationTestHostedDomain(IntegrationTestCase):
 
 		doc.reload()
 		records = {row.record_type: row for row in doc.dns_records}
-		self.assertEqual(len(doc.dns_records), 3)
+		self.assertEqual(len(doc.dns_records), 4)
 		self.assertEqual(records["NS"].record_name, "@")
 		self.assertEqual(records["NS"].zone_line, "5")
 		self.assertEqual(records["A"].record_name, "www")
 		self.assertEqual(records["A"].value, "192.0.2.10")
 		self.assertEqual(records["A"].zone_line, "6")
 		self.assertEqual(records["MX"].priority, 10)
+		self.assertEqual(records["CAA"].value, "letsencrypt.org")
+		self.assertEqual(records["CAA"].caa_flag, 0)
+		self.assertEqual(records["CAA"].caa_tag, "issue")
+		self.assertEqual(records["CAA"].zone_line, "8")
 
 	def test_apply_dns_changes_adds_and_edits_then_resyncs(self):
 		doc = self.make_domain(domain_name="applyme.example.com")
@@ -259,7 +277,11 @@ class IntegrationTestHostedDomain(IntegrationTestCase):
 
 		logs = frappe.get_all(
 			"cPanel Integration Log",
-			filters={"reference_doctype": "Hosted Domain", "reference_name": doc.name, "operation": "addzonerecord"},
+			filters={
+				"reference_doctype": "Hosted Domain",
+				"reference_name": doc.name,
+				"operation": "addzonerecord",
+			},
 		)
 		self.assertEqual(len(logs), 1)
 
@@ -289,6 +311,140 @@ class IntegrationTestHostedDomain(IntegrationTestCase):
 			},
 		)
 		self.assertEqual(len(logs), 1)
+
+	def test_customer_is_optional_and_stored_when_set(self):
+		# ERPNext is an optional dependency: a blank customer must always be valid.
+		doc = self.make_domain(domain_name="nocustomer.example.com")
+		self.assertFalse(doc.customer)
+
+		if not frappe.db.exists("DocType", "Customer"):
+			return
+
+		customer = frappe.get_doc(
+			{
+				"doctype": "Customer",
+				"customer_name": f"cPanel Test Customer {frappe.generate_hash(length=6)}",
+			}
+		).insert(ignore_permissions=True)
+		try:
+			linked = self.make_domain(domain_name="withcustomer.example.com", customer=customer.name)
+			linked.reload()
+			self.assertEqual(linked.customer, customer.name)
+		finally:
+			frappe.db.delete("Hosted Domain", {"customer": customer.name})
+			frappe.delete_doc("Customer", customer.name, force=True)
+
+	def test_unknown_customer_is_rejected(self):
+		if not frappe.db.exists("DocType", "Customer"):
+			return
+		with self.assertRaises(frappe.ValidationError):
+			self.make_domain(domain_name="badcustomer.example.com", customer="No Such Customer XYZ")
+
+	def test_suspend_and_unsuspend_account_toggle_status(self):
+		doc = self.make_domain(domain_name="suspendme.example.com")
+		doc.db_set("status", "Active", update_modified=False)
+		success = make_mock_response(True, 200, {"metadata": {"result": 1, "reason": "OK"}})
+
+		with patch(
+			"frappe_cpanel_manager.integrations.cpanel.client.requests.get",
+			return_value=success,
+		):
+			suspend_domain(doc.name, reason="non-payment")
+		doc.reload()
+		self.assertEqual(doc.status, "Suspended")
+
+		with self.assertRaises(frappe.ValidationError):
+			suspend_domain(doc.name)
+
+		with patch(
+			"frappe_cpanel_manager.integrations.cpanel.client.requests.get",
+			return_value=success,
+		):
+			unsuspend_domain(doc.name)
+		doc.reload()
+		self.assertEqual(doc.status, "Active")
+
+	def test_suspend_rejected_for_dns_only_domain(self):
+		doc = self.make_domain(
+			domain_name="dnsonlysuspend.example.com",
+			provisioning_type="DNS Only",
+			cpanel_username=None,
+			contact_email=None,
+			initial_cpanel_password=None,
+		)
+		doc.db_set("status", "Active", update_modified=False)
+		with self.assertRaises(frappe.ValidationError):
+			suspend_domain(doc.name)
+
+	def test_suspend_failure_records_error_and_keeps_status(self):
+		doc = self.make_domain(domain_name="suspendfail.example.com")
+		doc.db_set("status", "Active", update_modified=False)
+		failure = make_mock_response(
+			False, 422, {"metadata": {"result": 0, "reason": "Account already suspended."}}
+		)
+
+		with patch(
+			"frappe_cpanel_manager.integrations.cpanel.client.requests.get",
+			return_value=failure,
+		):
+			with self.assertRaises(CPanelAPIError):
+				suspend_domain(doc.name)
+
+		doc.reload()
+		self.assertEqual(doc.status, "Active")
+		self.assertIn("already suspended", doc.error_message)
+
+	def test_terminate_account_success_from_active(self):
+		doc = self.make_domain(domain_name="terminateme.example.com")
+		doc.db_set("status", "Active", update_modified=False)
+		success = make_mock_response(True, 200, {"metadata": {"result": 1, "reason": "OK"}})
+
+		with patch(
+			"frappe_cpanel_manager.integrations.cpanel.client.requests.get",
+			return_value=success,
+		):
+			terminate_domain(doc.name)
+
+		doc.reload()
+		self.assertEqual(doc.status, "Terminated")
+
+		logs = frappe.get_all(
+			"cPanel Integration Log",
+			filters={
+				"reference_doctype": "Hosted Domain",
+				"reference_name": doc.name,
+				"operation": "removeacct",
+			},
+		)
+		self.assertEqual(len(logs), 1)
+
+	def test_terminate_rejected_when_not_active_or_suspended(self):
+		doc = self.make_domain(domain_name="terminatedraft.example.com")
+		with self.assertRaises(frappe.ValidationError):
+			terminate_domain(doc.name)
+
+	def test_terminate_requires_delete_permission(self):
+		doc = self.make_domain(domain_name="terminateperm.example.com")
+		doc.db_set("status", "Active", update_modified=False)
+		operator_user = frappe.get_doc(
+			{
+				"doctype": "User",
+				"email": f"cpanelsec-terminate-{frappe.generate_hash(length=6)}@example.test",
+				"first_name": "Terminate",
+				"send_welcome_email": 0,
+				"roles": [{"role": "cPanel Manager Operator"}],
+			}
+		).insert(ignore_permissions=True)
+		try:
+			frappe.set_user(operator_user.name)
+			with self.assertRaises(frappe.PermissionError):
+				terminate_domain(doc.name)
+		finally:
+			frappe.set_user("Administrator")
+			frappe.delete_doc("User", operator_user.name, force=True)
+
+		doc.reload()
+		self.assertEqual(doc.status, "Active")
 
 
 class UnitTestNormalizeDomain(UnitTestCase):

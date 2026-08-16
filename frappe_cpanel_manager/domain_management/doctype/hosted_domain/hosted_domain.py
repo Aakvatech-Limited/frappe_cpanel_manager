@@ -15,14 +15,29 @@ from frappe_cpanel_manager.domain_management.utils import (
 	normalize_domain,
 )
 from frappe_cpanel_manager.integrations.cpanel.client import CPanelClient, sanitize_params
-from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAPIError, CPanelDuplicateResourceError
+from frappe_cpanel_manager.integrations.cpanel.exceptions import (
+	CPanelAPIError,
+	CPanelDuplicateResourceError,
+	friendly_message,
+)
 
 
 class HostedDomain(Document):
 	def validate(self):
 		self.domain_name = normalize_domain(self.domain_name)
 		self._check_duplicate_on_server()
+		self._validate_customer()
 		self._validate_dns_records()
+
+	def _validate_customer(self):
+		"""The Customer link is optional so this app still works without ERPNext.
+
+		Only the case where a customer is actually set on a site that has no
+		Customer doctype is rejected -- leaving it blank must stay valid, since
+		ERPNext is an optional dependency rather than a requirement.
+		"""
+		if self.customer and not frappe.db.exists("DocType", "Customer"):
+			frappe.throw(_("Customer tracking requires ERPNext, which is not installed on this site."))
 
 	def _check_duplicate_on_server(self):
 		duplicate = frappe.db.exists(
@@ -46,9 +61,9 @@ class HostedDomain(Document):
 		for record_name, types in types_by_name.items():
 			if "CNAME" in types and len(types) > 1:
 				frappe.throw(
-					_("{0} has a CNAME record and cannot have any other record type at the same name.").format(
-						record_name
-					)
+					_(
+						"{0} has a CNAME record and cannot have any other record type at the same name."
+					).format(record_name)
 				)
 
 	def enqueue_provision(self):
@@ -80,13 +95,16 @@ class HostedDomain(Document):
 				function_name, params, reference_doctype=self.doctype, reference_name=self.name
 			)
 		except CPanelAPIError as e:
+			message = friendly_message(_("provision"), self.domain_name, e)
 			self.db_set("status", "Failed", update_modified=False)
-			self.db_set("error_message", str(e), update_modified=False)
-			frappe.throw(str(e), exc=type(e), title=_("Provisioning Failed"))
+			self.db_set("error_message", message, update_modified=False)
+			frappe.throw(message, exc=type(e), title=_("Provisioning Failed"))
 
 		self.db_set("status", "Active", update_modified=False)
 		self.db_set("last_provisioned_on", now_datetime(), update_modified=False)
-		self.db_set("last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False)
+		self.db_set(
+			"last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False
+		)
 		self.db_set("error_message", "", update_modified=False)
 		if self.get_password("initial_cpanel_password", raise_exception=False):
 			remove_encrypted_password(self.doctype, self.name, "initial_cpanel_password")
@@ -116,6 +134,84 @@ class HostedDomain(Document):
 		if self.ip_address:
 			params["ip"] = self.ip_address
 		return "createacct", params
+
+	def suspend(self, reason=None):
+		"""Suspend the cPanel account itself (WHM `suspendacct`), not just a mailbox --
+		this takes the whole account offline, not just one email address."""
+		self._require_cpanel_account(_("suspended"))
+		if self.status != "Active":
+			frappe.throw(_("Only an Active domain's account can be suspended."))
+
+		params = {"user": self.cpanel_username}
+		if reason:
+			params["reason"] = reason
+		result = self._call_account_whm(
+			"suspendacct", params, _("Account Suspension Failed"), action=_("suspend the account for")
+		)
+
+		self.db_set("status", "Suspended", update_modified=False)
+		self.db_set(
+			"last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False
+		)
+		self.db_set("error_message", "", update_modified=False)
+
+	def unsuspend(self):
+		self._require_cpanel_account(_("unsuspended"))
+		if self.status != "Suspended":
+			frappe.throw(_("Only a Suspended domain's account can be unsuspended."))
+
+		result = self._call_account_whm(
+			"unsuspendacct",
+			{"user": self.cpanel_username},
+			_("Account Unsuspension Failed"),
+			action=_("unsuspend the account for"),
+		)
+
+		self.db_set("status", "Active", update_modified=False)
+		self.db_set(
+			"last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False
+		)
+		self.db_set("error_message", "", update_modified=False)
+
+	def terminate(self):
+		"""Permanently remove the cPanel account (WHM `removeacct`) -- irreversible: destroys
+		the account's domains, mail, files and databases on the server. Frappe's own
+		Hosted Domain / Domain Email Account records are kept as a historical record,
+		matching this app's established audit-trail-over-deletion convention."""
+		self._require_cpanel_account(_("terminated"))
+		if self.status not in ("Active", "Suspended"):
+			frappe.throw(_("Only an Active or Suspended domain's account can be terminated."))
+
+		result = self._call_account_whm(
+			"removeacct",
+			{"user": self.cpanel_username},
+			_("Account Termination Failed"),
+			action=_("terminate the account for"),
+		)
+
+		self.db_set("status", "Terminated", update_modified=False)
+		self.db_set(
+			"last_api_response", frappe.as_json(sanitize_params(result), indent=2), update_modified=False
+		)
+		self.db_set("error_message", "", update_modified=False)
+
+	def _require_cpanel_account(self, action):
+		if self.provisioning_type != "New cPanel Account" or not self.cpanel_username:
+			frappe.throw(
+				_("{0} is DNS Only and has no cPanel account to be {1}.").format(self.domain_name, action)
+			)
+
+	def _call_account_whm(self, function_name, params, error_title, action=None):
+		action = action or _("update the account for")
+		client = CPanelClient(self.server)
+		try:
+			return client.call_whm(
+				function_name, params, reference_doctype=self.doctype, reference_name=self.name
+			)
+		except CPanelAPIError as e:
+			message = friendly_message(action, self.domain_name, e)
+			self.db_set("error_message", message, update_modified=False)
+			frappe.throw(message, exc=type(e), title=error_title)
 
 	def sync_dns_from_server(self):
 		"""Overwrite the local `dns_records` table with the zone currently on the server."""
@@ -156,6 +252,7 @@ class HostedDomain(Document):
 				or entry.get("nsdname")
 				or entry.get("target")
 				or entry.get("txtdata")
+				or (entry.get("value") if record_type == "CAA" else None)
 				or ""
 			)
 			rows.append(
@@ -167,6 +264,8 @@ class HostedDomain(Document):
 					"priority": cint(entry.get("preference") or entry.get("priority") or 0) or None,
 					"weight": cint(entry.get("weight")) if record_type == "SRV" else None,
 					"port": cint(entry.get("port")) if record_type == "SRV" else None,
+					"caa_flag": cint(entry.get("flag")) if record_type == "CAA" else None,
+					"caa_tag": entry.get("tag") if record_type == "CAA" else None,
 					"zone_line": entry.get("Line") or entry.get("line"),
 				}
 			)
@@ -213,6 +312,10 @@ class HostedDomain(Document):
 			params["priority"] = row.priority
 			params["weight"] = row.weight
 			params["port"] = row.port
+		elif row.record_type == "CAA":
+			params["flag"] = row.caa_flag or 0
+			params["tag"] = row.caa_tag
+			params["value"] = row.value
 		elif row.record_type == "TXT":
 			params["txtdata"] = row.value
 		return params

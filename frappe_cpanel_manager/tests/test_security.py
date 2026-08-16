@@ -161,9 +161,7 @@ class IntegrationTestPermissionEnforcement(IntegrationTestCase):
 		cls.support_user = cls._make_user("cpanelsec-support@example.test", ["cPanel Manager Support"])
 		cls.operator_user = cls._make_user("cpanelsec-operator@example.test", ["cPanel Manager Operator"])
 		cls.auditor_user = cls._make_user("cpanelsec-auditor@example.test", ["cPanel Manager Auditor"])
-		cls.admin_role_user = cls._make_user(
-			"cpanelsec-admin@example.test", ["cPanel Manager Administrator"]
-		)
+		cls.admin_role_user = cls._make_user("cpanelsec-admin@example.test", ["cPanel Manager Administrator"])
 
 	@classmethod
 	def tearDownClass(cls):
