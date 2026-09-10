@@ -82,3 +82,37 @@ class UnitTestDomainDNSRecord(UnitTestCase):
 		row = make_row(record_name="not a valid name!")
 		with self.assertRaises(frappe.ValidationError):
 			row.validate()
+
+	def test_caa_requires_flag_and_tag(self):
+		row = make_row(record_type="CAA", value="letsencrypt.org")
+		with self.assertRaises(frappe.ValidationError):
+			row.validate()
+
+	def test_caa_rejects_invalid_tag(self):
+		row = make_row(record_type="CAA", value="letsencrypt.org", caa_flag=0, caa_tag="bogus")
+		with self.assertRaises(frappe.ValidationError):
+			row.validate()
+
+	def test_caa_issue_requires_domain_like_value(self):
+		row = make_row(record_type="CAA", value="not a domain", caa_flag=0, caa_tag="issue")
+		with self.assertRaises(frappe.ValidationError):
+			row.validate()
+
+	def test_caa_issue_with_valid_domain_passes(self):
+		row = make_row(record_type="CAA", value="letsencrypt.org", caa_flag=0, caa_tag="issue")
+		row.validate()
+		self.assertEqual(row.value, "letsencrypt.org")
+
+	def test_caa_issue_deny_all_semicolon_passes(self):
+		row = make_row(record_type="CAA", value=";", caa_flag=0, caa_tag="issuewild")
+		row.validate()
+		self.assertEqual(row.value, ";")
+
+	def test_caa_iodef_requires_uri(self):
+		row = make_row(record_type="CAA", value="not-a-uri", caa_flag=0, caa_tag="iodef")
+		with self.assertRaises(frappe.ValidationError):
+			row.validate()
+
+	def test_caa_iodef_with_mailto_passes(self):
+		row = make_row(record_type="CAA", value="mailto:admin@example.com", caa_flag=0, caa_tag="iodef")
+		row.validate()

@@ -1,0 +1,21 @@
+{
+ "creation": "2026-08-15 19:30:00.000000",
+ "docstatus": 0,
+ "doctype": "Number Card",
+ "document_type": "cPanel Integration Log",
+ "dynamic_filters_json": "[]",
+ "filters_json": "[[\"cPanel Integration Log\", \"status\", \"=\", \"Failed\"]]",
+ "function": "Count",
+ "idx": 0,
+ "is_public": 1,
+ "is_standard": 1,
+ "label": "Failed API Calls",
+ "modified": "2026-08-15 19:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "Operations",
+ "name": "Failed API Calls",
+ "owner": "Administrator",
+ "show_percentage_stats": 0,
+ "stats_time_interval": "Daily",
+ "type": "Document Type"
+}

@@ -9,6 +9,7 @@ from frappe.tests import IntegrationTestCase, UnitTestCase
 from frappe_cpanel_manager.api.email import (
 	change_password,
 	create_mailbox,
+	delete_mailbox,
 	edit_quota,
 	suspend_mailbox,
 	unsuspend_mailbox,
@@ -17,7 +18,9 @@ from frappe_cpanel_manager.email_management.utils import normalize_mailbox
 from frappe_cpanel_manager.integrations.cpanel.exceptions import CPanelAPIError
 
 EXTRA_TEST_RECORD_DEPENDENCIES = []
-IGNORE_TEST_RECORD_DEPENDENCIES = []
+# Hosted Domain links to Customer, so the test runner would otherwise pull in
+# ERPNext's Customer test records (and their own dependencies) for every run.
+IGNORE_TEST_RECORD_DEPENDENCIES = ["Customer"]
 
 
 def make_mock_response(ok, status_code, payload):
@@ -179,6 +182,38 @@ class IntegrationTestDomainEmailAccount(IntegrationTestCase):
 		doc.reload()
 		self.assertEqual(doc.quota_mb, 500)
 
+	def test_unlimited_quota_zeroes_the_number(self):
+		doc = self.make_account(mailbox="unlimitedbox", unlimited_quota=1, quota_mb=800)
+		self.assertEqual(doc.quota_mb, 0)
+		self.assertTrue(doc.unlimited_quota)
+
+	def test_zero_quota_without_unlimited_flag_is_rejected(self):
+		# cPanel reports unlimited as "unlimited", so 0 must not silently mean it.
+		with self.assertRaises(frappe.ValidationError):
+			self.make_account(mailbox="zeroquota", quota_mb=0)
+
+	def test_edit_quota_can_switch_to_unlimited(self):
+		doc = self.make_account(mailbox="switchunlimited", quota_mb=500)
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):
+			create_mailbox(doc.name)
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):
+			edit_quota(doc.name, 0, unlimited=1)
+
+		doc.reload()
+		self.assertTrue(doc.unlimited_quota)
+		self.assertEqual(doc.quota_mb, 0)
+
+	def test_edit_quota_can_switch_back_to_a_limit(self):
+		doc = self.make_account(mailbox="backtolimit", unlimited_quota=1)
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):
+			create_mailbox(doc.name)
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):
+			edit_quota(doc.name, 300, unlimited=0)
+
+		doc.reload()
+		self.assertFalse(doc.unlimited_quota)
+		self.assertEqual(doc.quota_mb, 300)
+
 	def test_suspend_and_unsuspend_toggle_status(self):
 		doc = self.make_account(mailbox="suspendme")
 		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):
@@ -196,6 +231,45 @@ class IntegrationTestDomainEmailAccount(IntegrationTestCase):
 			unsuspend_mailbox(doc.name)
 		doc.reload()
 		self.assertEqual(doc.status, "Active")
+
+	def test_delete_mailbox_requires_existing_mailbox(self):
+		doc = self.make_account(mailbox="notyetcreateddelete")
+		with self.assertRaises(frappe.ValidationError):
+			delete_mailbox(doc.name)
+
+	def test_delete_mailbox_success_sets_status_and_logs(self):
+		doc = self.make_account(mailbox="deleteme")
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):
+			create_mailbox(doc.name)
+
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):
+			delete_mailbox(doc.name)
+
+		doc.reload()
+		self.assertEqual(doc.status, "Deleted")
+		self.assertIsNotNone(doc.last_action_on)
+
+		logs = frappe.get_all(
+			"cPanel Integration Log",
+			filters={"reference_doctype": "Domain Email Account", "reference_name": doc.name},
+		)
+		self.assertEqual(len(logs), 2)
+
+		with self.assertRaises(frappe.ValidationError):
+			delete_mailbox(doc.name)
+
+	def test_delete_mailbox_failure_records_error(self):
+		doc = self.make_account(mailbox="deletewillfail")
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=SUCCESS):
+			create_mailbox(doc.name)
+
+		with patch("frappe_cpanel_manager.integrations.cpanel.client.requests.get", return_value=FAILURE):
+			with self.assertRaises(CPanelAPIError):
+				delete_mailbox(doc.name)
+
+		doc.reload()
+		self.assertEqual(doc.status, "Active")
+		self.assertIn("already exists", doc.error_message)
 
 
 class UnitTestNormalizeMailbox(UnitTestCase):

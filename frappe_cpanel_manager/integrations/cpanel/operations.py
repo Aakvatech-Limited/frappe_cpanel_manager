@@ -19,23 +19,35 @@ def run_with_retry(
 	delay_seconds=2,
 	on_retry=None,
 ):
-	"""Retry a transient cPanel/WHM operation a fixed number of times."""
+	"""Retry a transient cPanel/WHM operation a fixed number of times.
+
+	The current attempt is published on `frappe.flags` so `CPanelClient._log` can
+	record it against each integration log row -- otherwise a call that only
+	succeeded on its third try is indistinguishable from one that worked first
+	time, which is exactly what the retry count is meant to reveal.
+	"""
 	last_exc = None
-	for attempt in range(retries + 1):
-		try:
-			return action()
-		except retryable_exceptions as exc:
-			last_exc = exc
-			if attempt >= retries:
-				raise
-			if on_retry:
-				on_retry(attempt + 1, exc)
-			frappe.log_error(
-				title="cPanel operation retry",
-				message=f"Retrying operation after transient error: {exc}",
-			)
-			if delay_seconds:
-				time.sleep(delay_seconds)
+	previous_attempt = frappe.flags.get("cpanel_retry_attempt")
+	try:
+		for attempt in range(retries + 1):
+			frappe.flags.cpanel_retry_attempt = attempt
+			try:
+				return action()
+			except retryable_exceptions as exc:
+				last_exc = exc
+				if attempt >= retries:
+					raise
+				if on_retry:
+					on_retry(attempt + 1, exc)
+				frappe.log_error(
+					title="cPanel operation retry",
+					message=f"Retrying operation after transient error: {exc}",
+				)
+				if delay_seconds:
+					time.sleep(delay_seconds)
+	finally:
+		# Restore rather than clear: retries can legitimately nest.
+		frappe.flags.cpanel_retry_attempt = previous_attempt
 
 	if last_exc:
 		raise last_exc

@@ -10,7 +10,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "\nDraft\nProvisioning\nQueued\nActive\nFailed",
+   "options": "\nDraft\nQueued\nProvisioning\nActive\nSuspended\nTerminated\nFailed",
    "reqd": 0
   },
   {
@@ -21,12 +21,14 @@
    "reqd": 0
   }
  ],
- "is_standard": "No",
+ "idx": 0,
+ "is_standard": "Yes",
+ "modified": "2026-08-15 19:00:00.000000",
+ "modified_by": "Administrator",
  "module": "Operations",
  "name": "Operational Dashboard",
  "owner": "Administrator",
  "prepared_report": 0,
- "query": null,
  "ref_doctype": "Hosted Domain",
  "report_name": "Operational Dashboard",
  "report_type": "Script Report",
@@ -46,8 +48,5 @@
   {
    "role": "cPanel Manager Auditor"
   }
- ],
- "script": "frappe_cpanel_manager.operations.report.operational_dashboard.operational_dashboard.execute",
- "since": 1704067200,
- "version": 0
+ ]
 }

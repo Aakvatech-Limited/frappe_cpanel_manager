@@ -7,6 +7,8 @@ from frappe.model.document import Document
 from frappe.utils import cint
 
 from frappe_cpanel_manager.domain_management.utils import (
+	validate_caa_tag,
+	validate_caa_value,
 	validate_dns_record_name,
 	validate_dns_record_value,
 )
@@ -26,3 +28,9 @@ class DomainDNSRecord(Document):
 				frappe.throw(_("Weight is required for SRV records."))
 			if not self.port:
 				frappe.throw(_("Port is required for SRV records."))
+
+		if self.record_type == "CAA":
+			if self.caa_flag in (None, ""):
+				frappe.throw(_("CAA Flag is required for CAA records."))
+			self.caa_tag = validate_caa_tag(self.caa_tag)
+			validate_caa_value(self.caa_tag, self.value)
